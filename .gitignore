@@ -26,11 +26,11 @@ env/
 # Project Specific: Veridian Atlas
 # ---------------------------
 # Data lifecycle directories
-veridian_atlas/data/**/raw/*
-veridian_atlas/data/**/processed/*
-veridian_atlas/data/**/chunks/*
-veridian_atlas/data/**/embeddings/*
-veridian_atlas/data/tmp/
+# veridian_atlas/data/**/raw/*
+# veridian_atlas/data/**/processed/*
+# veridian_atlas/data/**/chunks/*
+# veridian_atlas/data/**/embeddings/*
+# veridian_atlas/data/tmp/
 
 # Allow schema/example files if needed
 !veridian_atlas/data/**/*_schema.json
