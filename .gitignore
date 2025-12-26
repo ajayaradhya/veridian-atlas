@@ -1,0 +1,60 @@
+# ---------------------------
+# Python / Environment
+# ---------------------------
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pkl
+*.pickle
+
+# Virtual environment folders
+venv/
+.env/
+env/
+.venv/
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.code-workspace
+
+# ---------------------------
+# Project Specific: Veridian Atlas
+# ---------------------------
+# Data lifecycle directories
+veridian_atlas/data/**/raw/*
+veridian_atlas/data/**/processed/*
+veridian_atlas/data/**/chunks/*
+veridian_atlas/data/**/embeddings/*
+veridian_atlas/data/tmp/
+
+# Allow schema/example files if needed
+!veridian_atlas/data/**/*_schema.json
+!veridian_atlas/data/**/example*.txt
+
+# Logs
+logs/
+*.log
+
+# Local cache / scratch
+cache/
+.tmp/
+*.tmp
+
+# ---------------------------
+# Dependencies / Build
+# ---------------------------
+dist/
+build/
+*.egg-info/
+*.egg
+
+# ---------------------------
+# OS Junk
+# ---------------------------
+.DS_Store
+Thumbs.db
