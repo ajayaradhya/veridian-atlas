@@ -1,14 +1,33 @@
 // src/components/PromptInput.jsx
+import { useRef } from "react";
 import { Send } from "lucide-react";
 
 export default function PromptInput({ query, setQuery, onAsk }) {
+  const textareaRef = useRef(null);
+
   const handleSubmit = () => {
     if (!query.trim()) return;
     onAsk();
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && e.shiftKey) return; // allow newline
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSubmit();
+    }
+  };
+
+  const autoResize = () => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  };
+
   return (
     <div className="w-full max-w-3xl mx-auto px-4">
+      
       <div
         className="
           flex items-center gap-3
@@ -23,16 +42,25 @@ export default function PromptInput({ query, setQuery, onAsk }) {
           transition
         "
       >
-        <input
+        {/* Auto-resizing & vertically centered textarea */}
+        <textarea
+          ref={textareaRef}
+          rows={1}
           className="
             flex-1 bg-transparent text-gray-200 placeholder-gray-500
+            resize-none overflow-hidden
             focus:outline-none
             text-sm
+            leading-[1.4]
+            pt-[4px]          /* centers placeholder visually */
           "
           placeholder="Ask anything about the deal..."
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            autoResize();
+          }}
+          onKeyDown={handleKeyDown}
         />
 
         <button
@@ -42,16 +70,15 @@ export default function PromptInput({ query, setQuery, onAsk }) {
             rounded-lg
             bg-[#2c2c2c]
             hover:bg-[#3a3a3a]
-            text-gray-300
-            transition
+            text-gray-300 transition
           "
         >
-          <Send size={20} />
+          <Send size={18} />
         </button>
       </div>
 
-      <p className="text-[11px] text-gray-500 text-center mt-3">
-        Veridian Atlas may produce incomplete or outdated interpretations. Verify citations.
+      <p className="text-[11px] text-gray-400 text-center mt-3">
+        Press Enter to send • Shift+Enter for a new line
       </p>
     </div>
   );

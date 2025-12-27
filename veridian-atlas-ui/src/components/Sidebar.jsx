@@ -131,7 +131,7 @@ export default function Sidebar({ history, setHistory, onSelect, onNewChat }) {
         {/* DELETE ALL - LIGHTER GRAY BUTTON */}
         <Button 
           variant="outline"
-          className="w-full border-[#bababa] text-black hover:bg-[#b5b5b5]"
+          className="w-full border-[#bababa] text-gray hover:bg-[#212121]"
           onClick={deleteAll}
         >
           Clear History
