@@ -7,17 +7,15 @@ class SourceRef(BaseModel):
     section: Optional[str]
     clause: Optional[str]
     preview: str
-    deal: Optional[str] = None
+    deal: Optional[str] = None  # optional, UI can use later
 
 class QueryRequest(BaseModel):
     query: str
-    top_k: int = 5
+    top_k: int = 3
 
 class QueryResponse(BaseModel):
     query: str
     answer: str
-    citations: List[str] = []               # model returned citations
-    citations_model: List[str] = []
-    citations_retrieved: List[str] = []     # retrieved context references
-    sources: List[SourceRef]
+    citations: List[str] = []
     source_count: int
+    sources: List[SourceRef]

@@ -36,7 +36,25 @@ def health_check():
 # ---------------------------------------------------------
 @app.post("/ask", response_model=QueryResponse)
 def ask_contract(request: QueryRequest):
-    return service.answer(request.query, request.top_k)
+    result = service.answer(request.query, request.top_k)
+
+    formatted_sources = []
+    for s in result.get("sources", []):
+        formatted_sources.append({
+            "chunk_id": s["chunk_id"],
+            "section": s.get("section"),
+            "clause": s.get("clause"),
+            "preview": s.get("content", "")[:300] + "..." if len(s.get("content","")) > 300 else s.get("content",""),
+            "deal": s.get("deal")
+        })
+
+    return {
+        "query": result.get("query"),
+        "answer": result.get("answer"),
+        "citations": result.get("citations", []),
+        "source_count": len(formatted_sources),
+        "sources": formatted_sources
+    }
 
 
 # ---------------------------------------------------------
