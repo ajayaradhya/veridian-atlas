@@ -133,7 +133,7 @@ export default function App() {
             {/* TAGLINE */}
             <p
               className="
-                text-[15px] mb-10
+                text-[15px] mb-5
                 bg-gradient-to-r from-[#F0F0F0] via-[#CECECE] to-[#8C8C8C]
                 bg-clip-text text-transparent leading-snug
               "
