@@ -2,54 +2,63 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { User } from "lucide-react"; // profile icon
+import { User } from "lucide-react";
 
-// Group by date buckets like ChatGPT
+// -------------------------------------------
+// Group entries into date buckets (ChatGPT style)
+// -------------------------------------------
 function groupByDate(history) {
   const today = new Date();
-  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
-  const startOfYesterday = startOfToday - 86400000;
-  const startOfWeek = startOfToday - 86400000 * 7;
+  const start = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+  const yesterday = start - 86400000;
+  const week = start - 86400000 * 7;
 
-  const groups = {
-    Today: [],
-    Yesterday: [],
-    "This Week": [],
-    Older: [],
-  };
+  const groups = { Today: [], Yesterday: [], "This Week": [], Older: [] };
 
   history.forEach((item) => {
     const ts = new Date(item.timestamp).getTime();
-    if (ts >= startOfToday) groups.Today.push(item);
-    else if (ts >= startOfYesterday) groups.Yesterday.push(item);
-    else if (ts >= startOfWeek) groups["This Week"].push(item);
+    if (ts >= start) groups.Today.push(item);
+    else if (ts >= yesterday) groups.Yesterday.push(item);
+    else if (ts >= week) groups["This Week"].push(item);
     else groups.Older.push(item);
   });
 
   return groups;
 }
 
-export default function Sidebar({ history, setHistory, onSelect, onNewChat }) {
+export default function Sidebar({
+  history,
+  setHistory,
+  onSelect,      // NEW unified callback → onSelect({deal, query})
+  onNewChat,
+}) {
   const [searchTerm, setSearchTerm] = useState("");
 
+  // -------------------------------------------
+  // Filter by both deal & query
+  // -------------------------------------------
   const filtered = history.filter((item) =>
-    item.query.toLowerCase().includes(searchTerm.toLowerCase())
+    item.query.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.deal.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const grouped = groupByDate(filtered);
 
+  // -------------------------------------------
+  // Delete handlers
+  // -------------------------------------------
   const deleteItem = (timestamp) =>
     setHistory((prev) => prev.filter((h) => h.timestamp !== timestamp));
 
   const deleteAll = () => {
-    if (confirm("Clear entire history? This action cannot be undone.")) {
+    if (confirm("Clear entire history? This cannot be undone.")) {
       setHistory([]);
       setSearchTerm("");
     }
   };
 
   return (
-    <div className="h-screen w-64 bg-[#0a0a0a] text-gray-200 border-r border-[#1c1c1c] flex flex-col dark-scroll">
+    <div className="h-screen w-64 bg-[#0a0a0a] text-gray-200 border-r border-[#1c1c1c] flex flex-col">
 
       {/* NEW CHAT */}
       <div className="p-4 border-b border-[#1c1c1c]">
@@ -64,14 +73,14 @@ export default function Sidebar({ history, setHistory, onSelect, onNewChat }) {
         </Button>
       </div>
 
-      {/* SEARCH INPUT */}
+      {/* SEARCH FIELD */}
       <div className="p-4 border-b border-[#1c1c1c] space-y-2">
         <input
-          placeholder="Search history..."
+          placeholder="Search by deal or query..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full px-3 py-2 rounded-md bg-[#1b1b1b] border border-[#2b2b2b]
-            text-gray-200 text-sm focus:outline-none focus:border-[#3c3c3c]"
+          text-gray-200 text-sm focus:outline-none focus:border-[#3c3c3c]"
         />
         {searchTerm && (
           <button
@@ -83,10 +92,10 @@ export default function Sidebar({ history, setHistory, onSelect, onNewChat }) {
         )}
       </div>
 
-      {/* HISTORY LIST */}
+      {/* HISTORY GROUPS */}
       <ScrollArea className="flex-1 px-3 py-3 space-y-5">
         {Object.values(grouped).every((arr) => arr.length === 0) && (
-          <p className="text-xs text-gray-500 mt-4">No history found.</p>
+          <p className="text-xs text-gray-500 mt-4">No history yet.</p>
         )}
 
         {Object.entries(grouped).map(([label, items]) =>
@@ -99,22 +108,26 @@ export default function Sidebar({ history, setHistory, onSelect, onNewChat }) {
               {items.map((item) => (
                 <div
                   key={item.timestamp}
-                  className="flex items-center justify-between group"
+                  className="flex flex-col group hover:bg-[#161616] rounded-md transition"
                 >
-                  {/* Select item */}
                   <button
-                    onClick={() => onSelect(item.query)}
-                    className="flex-1 text-left px-3 py-2 text-sm rounded-md
-                      hover:bg-[#1f1f1f] transition"
+                    className="w-full text-left p-2"
+                    onClick={() => onSelect({ deal: item.deal, query: item.query })}
                   >
-                    {item.query}
+                    {/* Query */}
+                    <p className="text-sm text-gray-200 truncate">{item.query}</p>
+
+                    {/* Deal Badge */}
+                    <span className="inline-flex mt-1 text-[10px] px-2 py-0.5 rounded-md
+                      bg-[#202020] border border-[#2e2e2e] text-gray-400">
+                      {item.deal}
+                    </span>
                   </button>
 
-                  {/* Delete single */}
+                  {/* Delete icon */}
                   <button
                     onClick={() => deleteItem(item.timestamp)}
-                    className="opacity-0 group-hover:opacity-100 transition text-gray-500 hover:text-red-500 px-2"
-                    title="Delete"
+                    className="self-end opacity-0 group-hover:opacity-100 text-gray-500 hover:text-red-500 text-xs pr-2 pb-1"
                   >
                     🗑
                   </button>
@@ -127,31 +140,23 @@ export default function Sidebar({ history, setHistory, onSelect, onNewChat }) {
 
       {/* FOOTER */}
       <div className="p-4 border-t border-[#1c1c1c] space-y-3">
-
-        {/* DELETE ALL - LIGHTER GRAY BUTTON */}
-        <Button 
+        <Button
           variant="outline"
-          className="w-full border-[#bababa] text-gray hover:bg-[#212121]"
+          className="w-full border-[#bababa] text-gray-300 hover:bg-[#212121]"
           onClick={deleteAll}
         >
           Clear History
         </Button>
 
-        {/* CHATGPT-STYLE PROFILE SECTION */}
-        <div
-          className="flex items-center gap-3 p-2 rounded-lg hover:bg-[#1a1a1a]
-            cursor-pointer transition"
-        >
+        <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-[#1a1a1a] cursor-pointer transition">
           <div className="w-8 h-8 rounded-full bg-[#2a2a2a] flex items-center justify-center">
             <User size={16} className="text-gray-300" />
           </div>
-
-          <div className="flex flex-col leading-tight">
+          <div className="leading-tight">
             <span className="text-sm font-medium text-gray-200">Ajay</span>
             <span className="text-[11px] text-gray-500">Manage Account</span>
           </div>
         </div>
-
       </div>
     </div>
   );

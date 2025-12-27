@@ -7,123 +7,129 @@ import PromptInput from "./components/PromptInput";
 import ConversationView from "./components/ConversationView";
 import LoadingState from "./components/LoadingState";
 import AppHeader from "./components/AppHeader";
+import DealSelector from "./components/DealSelector";
 
 // API
-import { askRagQuestion } from "@/api/client";
+import { askRagQuestion, listDeals } from "@/api/client";
 
 export default function App() {
   const [query, setQuery] = useState("");
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Multi-deal state
+  const [deals, setDeals] = useState([]);
+  const [selectedDeal, setSelectedDeal] = useState("");
+
+  // Chat history (stored per deal + query)
   const [history, setHistory] = useState(() =>
     JSON.parse(localStorage.getItem("veridian-history") || "[]")
   );
 
+  // Load available deals once
+  useEffect(() => {
+    async function loadDeals() {
+      const serverDeals = await listDeals();
+      setDeals(serverDeals);
+      if (serverDeals.length > 0) setSelectedDeal(serverDeals[0]); // default
+    }
+    loadDeals();
+  }, []);
+
+  // Persist local history
   useEffect(() => {
     localStorage.setItem("veridian-history", JSON.stringify(history));
   }, [history]);
 
+
+  // --------------------------------------------------------------
+  // MAIN ASK
+  // --------------------------------------------------------------
   const handleAsk = async () => {
-    if (!query.trim()) return;
+    if (!query.trim() || !selectedDeal) return;
     setLoading(true);
     setError("");
     setData(null);
 
     try {
-      const res = await askRagQuestion(query);
+      const res = await askRagQuestion(selectedDeal, query, 3);
       setData(res);
 
-      if (!history.length || history[history.length - 1].query !== query) {
-        setHistory((prev) => [...prev, { query, timestamp: new Date().toISOString() }]);
-      }
-
-    } catch (err) {
-      setError("Something went wrong while processing your request.");
+      setHistory((prev) => [
+        ...prev,
+        {
+          deal: selectedDeal,
+          query,
+          timestamp: new Date().toISOString(),
+        },
+      ]);
+    } catch {
+      setError("Error: Unable to process request for this deal.");
     }
 
     setLoading(false);
   };
 
+  // Reset for "New Chat"
   const reset = () => {
     setQuery("");
     setData(null);
     setError("");
   };
 
+
+  // --------------------------------------------------------------
+  // RENDER
+  // --------------------------------------------------------------
   return (
     <div className="flex min-h-screen bg-[#101010] text-gray-200 font-brand">
 
-      {/* LEFT SIDEBAR */}
+      {/* SIDEBAR */}
       <Sidebar
         history={history}
         setHistory={setHistory}
-        onSelect={setQuery}
+        onSelect={({ deal, query }) => {
+          setSelectedDeal(deal);
+          setQuery(query);
+        }}
         onNewChat={reset}
       />
 
       {/* MAIN PANEL */}
       <main className="flex-1 flex flex-col items-center overflow-y-auto relative">
 
-        {/* TOP HEADER BAR */}
-        <AppHeader />
+        {/* GLOBAL HEADER */}
+        <AppHeader
+          selectedDeal={selectedDeal}
+          setSelectedDeal={setSelectedDeal}
+        />
 
-        {/* BACKDROP GLOW (center-out, smooth) */}
-        <div className="pointer-events-none absolute inset-0">
-
-          {/* Base gradient from center outward */}
-          <div className="
-            absolute inset-0
-            bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.12)_0%,rgba(0,0,0,0)_75%)]
-          " />
-
-          {/* Vertical fade for depth */}
-          <div className="
-            absolute inset-0
-            bg-gradient-to-b from-transparent via-[#0c0c0c66] to-[#0b0b0b]
-          " />
-
-          {/* Subtle center highlight */}
-          <div className="
-            absolute inset-0
-            bg-[radial-gradient(circle_at_center,rgba(200,200,200,0.04),transparent_60%)]
-            blur-3xl
-          " />
+        {/* DEAL SELECTOR (TOP AREA) */}
+        <div className="w-full max-w-3xl mx-auto mt-6 mb-6">
+          <DealSelector
+            deals={deals}
+            selectedDeal={selectedDeal}
+            setSelectedDeal={setSelectedDeal}
+          />
         </div>
 
-        {/* LANDING SCREEN */}
+        {/* LANDING */}
         {!data && !loading && (
-          <div className="flex flex-col items-center text-center pt-32 pb-24 relative z-10 max-w-3xl">
-
-            {/* TITLE */}
-            <h1
-              className="
-                text-6xl font-bold mb-3 select-none
-                bg-gradient-to-r from-[#EDEDED] via-[#D7D7D7] to-[#AFAFAF]
-                bg-clip-text text-transparent
-                tracking-tight leading-none
-              "
-            >
+          <div className="flex flex-col items-center text-center pt-24 pb-10 max-w-3xl relative z-10">
+            <h1 className="text-6xl font-bold mb-3 text-transparent bg-clip-text bg-white/75">
               Veridian Atlas
             </h1>
-
-            {/* UNDERLINE */}
-            <div className="h-[2px] w-4/5 bg-gradient-to-r from-transparent via-gray-100 to-transparent rounded-full opacity-60 mb-5" />
-
-            {/* TAGLINE */}
-            <p
-              className="
-                text-[15px] mb-10
-                bg-gradient-to-r from-[#F0F0F0] via-[#CECECE] to-[#8C8C8C]
-                bg-clip-text text-transparent leading-snug
-              "
-            >
-              Precision Search. Verified Citations.
+            <p className="text-sm text-gray-300 mb-10">
+              Select a deal and ask a question — granular citations guaranteed.
             </p>
 
-            {/* INPUT */}
-            <PromptInput query={query} setQuery={setQuery} onAsk={handleAsk} />
-
+            <PromptInput
+              query={query}
+              setQuery={setQuery}
+              onAsk={handleAsk}
+              selectedDeal={selectedDeal}
+            />
           </div>
         )}
 
@@ -135,21 +141,11 @@ export default function App() {
         )}
 
         {/* ANSWER VIEW */}
-        {!loading && (
-          <div className="w-full flex justify-center relative z-10">
+        {!loading && data && (
+          <div className="w-full flex justify-center relative z-10 mt-10">
             <ConversationView data={data} error={error} reset={reset} />
           </div>
         )}
-
-        {/* BOTTOM INPUT (POST-ANSWER) */}
-        {/* {data && !loading && (
-          <footer className="sticky bottom-0 w-full bg-[#171717]/90 backdrop-blur-md border-t border-[#252525] p-6 z-40">
-            <div className="w-full max-w-3xl mx-auto">
-              <PromptInput query={query} setQuery={setQuery} onAsk={handleAsk} />
-            </div>
-          </footer>
-        )} */}
-
       </main>
     </div>
   );
