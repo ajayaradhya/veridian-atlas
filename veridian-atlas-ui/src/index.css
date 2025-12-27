@@ -5,7 +5,9 @@
 /* Optional: smoother font rendering */
 html {
   -webkit-font-smoothing: antialiased;
+  font-family: Inter, system-ui, sans-serif;
 }
+
 
 @layer base {
   :root {
