@@ -10,16 +10,33 @@ export default function AppHeader() {
         px-6 py-2.5
       "
     >
-      <h1 className="text-sm font-semibold text-gray-300 tracking-tight">
-        Veridian Atlas
-      </h1>
+      {/* Product Name with Hover Underline */}
+      <div className="relative group cursor-default">
+        <h1 className="text-sm font-semibold text-gray-300 tracking-tight select-none">
+          Veridian Atlas
+        </h1>
 
+        {/* Hover underline animation */}
+        <span
+          className="
+            pointer-events-none
+            absolute left-0 -bottom-[3px] h-[1px]
+            bg-gray-200/60 rounded-full
+            w-0
+            transition-all duration-200 ease-out
+            group-hover:w-full
+          "
+        />
+      </div>
+
+      {/* Model Tag (Hover Interaction) */}
       <div
         className="
           text-[11px] text-gray-400
           border border-[#2c2c2c]
           px-2.5 py-1 rounded-md
-          hover:border-[#3c3c3c]
+          hover:border-[#3c3c3c] hover:text-gray-300
+          transition cursor-default select-none
         "
       >
         RAG Engine v1

@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { User } from "lucide-react";
 
-// -------------------------------------------
-// Group entries into date buckets (ChatGPT style)
-// -------------------------------------------
+// -------------------------------------------------------------
+// Group by date buckets (original logic preserved)
+// -------------------------------------------------------------
 function groupByDate(history) {
   const today = new Date();
   const start = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
@@ -29,36 +29,30 @@ function groupByDate(history) {
 export default function Sidebar({
   history,
   setHistory,
-  onSelect,      // NEW unified callback → onSelect({deal, query})
+  onSelect,     // onSelect({deal, query})
   onNewChat,
 }) {
   const [searchTerm, setSearchTerm] = useState("");
 
-  // -------------------------------------------
-  // Filter by both deal & query
-  // -------------------------------------------
   const filtered = history.filter((item) =>
     item.query.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.deal.toLowerCase().includes(searchTerm.toLowerCase())
+    item.deal?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const grouped = groupByDate(filtered);
 
-  // -------------------------------------------
-  // Delete handlers
-  // -------------------------------------------
   const deleteItem = (timestamp) =>
     setHistory((prev) => prev.filter((h) => h.timestamp !== timestamp));
 
   const deleteAll = () => {
-    if (confirm("Clear entire history? This cannot be undone.")) {
+    if (confirm("Clear entire history? This action cannot be undone.")) {
       setHistory([]);
       setSearchTerm("");
     }
   };
 
   return (
-    <div className="h-screen w-64 bg-[#0a0a0a] text-gray-200 border-r border-[#1c1c1c] flex flex-col">
+    <div className="h-screen w-64 bg-[#0a0a0a] text-gray-200 border-r border-[#1c1c1c] flex flex-col dark-scroll">
 
       {/* NEW CHAT */}
       <div className="p-4 border-b border-[#1c1c1c]">
@@ -73,14 +67,14 @@ export default function Sidebar({
         </Button>
       </div>
 
-      {/* SEARCH FIELD */}
+      {/* SEARCH INPUT */}
       <div className="p-4 border-b border-[#1c1c1c] space-y-2">
         <input
-          placeholder="Search by deal or query..."
+          placeholder="Search history..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full px-3 py-2 rounded-md bg-[#1b1b1b] border border-[#2b2b2b]
-          text-gray-200 text-sm focus:outline-none focus:border-[#3c3c3c]"
+            text-gray-200 text-sm focus:outline-none focus:border-[#3c3c3c]"
         />
         {searchTerm && (
           <button
@@ -95,7 +89,7 @@ export default function Sidebar({
       {/* HISTORY GROUPS */}
       <ScrollArea className="flex-1 px-3 py-3 space-y-5">
         {Object.values(grouped).every((arr) => arr.length === 0) && (
-          <p className="text-xs text-gray-500 mt-4">No history yet.</p>
+          <p className="text-xs text-gray-500 mt-4">No history found.</p>
         )}
 
         {Object.entries(grouped).map(([label, items]) =>
@@ -108,26 +102,31 @@ export default function Sidebar({
               {items.map((item) => (
                 <div
                   key={item.timestamp}
-                  className="flex flex-col group hover:bg-[#161616] rounded-md transition"
+                  className="flex items-center justify-between group rounded-md hover:bg-[#1f1f1f] transition px-2"
                 >
+                  {/* Select history item */}
                   <button
-                    className="w-full text-left p-2"
-                    onClick={() => onSelect({ deal: item.deal, query: item.query })}
+                    className="flex-1 text-left py-2 text-sm truncate"
+                    onClick={() =>
+                      onSelect({ deal: item.deal, query: item.query })
+                    }
                   >
-                    {/* Query */}
-                    <p className="text-sm text-gray-200 truncate">{item.query}</p>
-
-                    {/* Deal Badge */}
-                    <span className="inline-flex mt-1 text-[10px] px-2 py-0.5 rounded-md
-                      bg-[#202020] border border-[#2e2e2e] text-gray-400">
-                      {item.deal}
-                    </span>
+                    <p className="truncate text-gray-200">{item.query}</p>
+                    {item.deal && (
+                      <span
+                        className="mt-1 inline-block text-[10px] px-2 py-0.5 rounded-md
+                          bg-[#202020] border border-[#2e2e2e] text-gray-400"
+                      >
+                        {item.deal}
+                      </span>
+                    )}
                   </button>
 
-                  {/* Delete icon */}
+                  {/* Delete single */}
                   <button
                     onClick={() => deleteItem(item.timestamp)}
-                    className="self-end opacity-0 group-hover:opacity-100 text-gray-500 hover:text-red-500 text-xs pr-2 pb-1"
+                    className="opacity-0 group-hover:opacity-100 transition text-gray-500 hover:text-red-500 px-2"
+                    title="Delete"
                   >
                     🗑
                   </button>
@@ -138,11 +137,12 @@ export default function Sidebar({
         )}
       </ScrollArea>
 
-      {/* FOOTER */}
+      {/* FOOTER AREA */}
       <div className="p-4 border-t border-[#1c1c1c] space-y-3">
+
         <Button
           variant="outline"
-          className="w-full border-[#bababa] text-gray-300 hover:bg-[#212121]"
+          className="w-full border-[#bababa] text-gray hover:bg-[#212121]"
           onClick={deleteAll}
         >
           Clear History
@@ -152,7 +152,7 @@ export default function Sidebar({
           <div className="w-8 h-8 rounded-full bg-[#2a2a2a] flex items-center justify-center">
             <User size={16} className="text-gray-300" />
           </div>
-          <div className="leading-tight">
+          <div className="flex flex-col leading-tight">
             <span className="text-sm font-medium text-gray-200">Ajay</span>
             <span className="text-[11px] text-gray-500">Manage Account</span>
           </div>
