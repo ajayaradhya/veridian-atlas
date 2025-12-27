@@ -1,20 +1,7 @@
 """
 index_builder.py
 ----------------
-Builds and manages a Chroma vector index from Veridian Atlas chunks.
-
-Input:
-    chunks.jsonl (output from chunker.py)
-
-Output:
-    chroma_db/  (local persistent vector DB for retrieval)
-
-Enhancements:
-- Accepts "content", "text", or "section_text" as the primary payload
-- Normalizes metadata → Chroma-safe dict
-- Prevents orphan fields & duplicated inserts
-- Optional auto-reset via parameter
-- Upsert-like behavior: same ID = overwrite
+Build & maintain Chroma vector index for Veridian Atlas.
 """
 
 from pathlib import Path
@@ -22,36 +9,34 @@ import json
 import shutil
 import chromadb
 from chromadb.config import Settings
-from veridian_atlas.embeddings.embedder import hf_embedder  # HF local embedder
+from veridian_atlas.embeddings.embedder import hf_embedder
 
-
-# ---------------------------------------------
-# CONFIG
-# ---------------------------------------------
 
 COLLECTION_NAME = "veridian_atlas"
 
 
+# -----------------------------------------------------
+# DB CLIENT + COLLECTION
+# -----------------------------------------------------
+
 def get_chroma_client(db_path: Path):
-    """Create or connect to local Chroma DB."""
     db_path.mkdir(parents=True, exist_ok=True)
     return chromadb.PersistentClient(
         path=str(db_path),
-        settings=Settings(anonymized_telemetry=False)
+        settings=Settings(anonymized_telemetry=False),
     )
 
 
 def get_or_create_collection(client):
-    """Load or create vector collection."""
     return client.get_or_create_collection(
         name=COLLECTION_NAME,
-        metadata={"hnsw:space": "cosine"}  # better for sentence-transformers
+        metadata={"hnsw:space": "cosine"}  # best for sentence-transformers
     )
 
 
-# ---------------------------------------------
-# INDEX BUILDING
-# ---------------------------------------------
+# -----------------------------------------------------
+# BUILD INDEX
+# -----------------------------------------------------
 
 def build_chroma_index(
     chunks_path: Path,
@@ -59,100 +44,92 @@ def build_chroma_index(
     reset_existing: bool = False,
     batch_size: int = 64
 ):
-    """
-    Build or update a Chroma index with embeddings from chunks.jsonl.
-
-    Args
-    ----
-    chunks_path     : Path to chunks.jsonl
-    db_path         : Directory to store / load index
-    reset_existing  : If True → wipe old index first
-    batch_size      : Embedding batch size
-    """
-
     if not chunks_path.exists():
         raise FileNotFoundError(f"[ERROR] chunks.jsonl missing → {chunks_path}")
 
+    # optional wipe
     if reset_existing and db_path.exists():
         print(f"[RESET] Removing old Chroma index → {db_path}")
         shutil.rmtree(db_path)
 
-    print(f"\n[LOAD] Reading chunks from → {chunks_path}")
-    print(f"[DB] Target Chroma path → {db_path}\n")
+    print(f"\n[LOAD] Chunks → {chunks_path}")
+    print(f"[DB]   Index  → {db_path}\n")
 
     client = get_chroma_client(db_path)
     collection = get_or_create_collection(client)
 
     ids, contents, metadatas = [], [], []
 
-    with open(chunks_path, "r", encoding="utf-8") as f:
+    # -------------------------------------------------
+    # LOAD & NORMALIZE CHUNKS
+    # -------------------------------------------------
+    with chunks_path.open("r", encoding="utf-8") as f:
         for line in f:
-            raw = json.loads(line)
+            data = json.loads(line)
 
-            # unified reader for all variants of text fields
-            content = raw.get("content") or raw.get("text") or raw.get("section_text")
+            content = data.get("content") or data.get("text") or data.get("section_text")
             if not content or not content.strip():
                 continue
 
-            chunk_id = raw["chunk_id"]
+            chunk_id = data["chunk_id"]
 
-            # build chroma-safe metadata (nested dicts removed)
+            ### FIX: force ID into metadata now
             metadata = {
-                "deal_name": raw.get("deal_name"),
-                "source_file": raw.get("source_file"),
-                "level": raw.get("level"),
-                "section_id": raw.get("section_id"),
-                "clause_id": raw.get("clause_id"),
-                "section_title": raw.get("section_title"),
-                "clause_title": raw.get("clause_title"),
+                "chunk_id": chunk_id,                        # <— KEY LINE
+                "deal_name": data.get("deal_name"),
+                "source_file": data.get("source_file"),
+                "level": data.get("level"),
+                "section_id": data.get("section_id"),
+                "clause_id": data.get("clause_id"),
+                "section_title": data.get("section_title"),
+                "clause_title": data.get("clause_title"),
             }
 
             ids.append(chunk_id)
             contents.append(content.strip())
             metadatas.append({k: v for k, v in metadata.items() if v is not None})
 
-    print(f"[STATS] Found {len(ids)} chunks with content.")
+    print(f"[STATS] {len(ids)} valid chunks to index.")
     if len(ids) == 0:
-        print("[WARN] No valid chunks to embed. Aborting.")
+        print("[WARN] No usable chunks found. Exiting.")
         return collection
 
-    # -----------------------------------------
-    # BATCH EMBEDDINGS + INSERT
-    # -----------------------------------------
+    # -------------------------------------------------
+    # EMBED + UPSERT
+    # -------------------------------------------------
     for i in range(0, len(ids), batch_size):
-        batch_ids = ids[i:i+batch_size]
-        batch_texts = contents[i:i+batch_size]
-        batch_meta = metadatas[i:i+batch_size]
+        b_ids = ids[i:i+batch_size]
+        b_text = contents[i:i+batch_size]
+        b_meta = metadatas[i:i+batch_size]
 
-        vectors = hf_embedder.embed(batch_texts)
+        vectors = hf_embedder.embed(b_text)
 
-        collection.upsert(
-            ids=batch_ids,
-            documents=batch_texts,
-            metadatas=batch_meta,
-            embeddings=vectors
+        collection.upsert(                      # <— safe overwrite
+            ids=b_ids,
+            documents=b_text,
+            metadatas=b_meta,
+            embeddings=vectors,
         )
 
-        print(f"[BATCH] Stored chunks {i} → {i + len(batch_ids) - 1}")
+        print(f"[BATCH] {i} → {i + len(b_ids) - 1}")
 
-    print(f"\n[OK] Indexed {len(ids)} chunks into → {db_path}")
+    print(f"\n[OK] Indexed {len(ids)} chunks → {db_path}")
     return collection
 
 
-# ---------------------------------------------
-# FORCE REBUILD
-# ---------------------------------------------
+# -----------------------------------------------------
+# REBUILD
+# -----------------------------------------------------
 
 def rebuild_index(chunks_path: Path, db_path: Path):
     if db_path.exists():
-        print(f"[REBUILD] Clearing index folder → {db_path}")
         shutil.rmtree(db_path)
     return build_chroma_index(chunks_path, db_path, reset_existing=False)
 
 
-# ---------------------------------------------
+# -----------------------------------------------------
 # TEST QUERY
-# ---------------------------------------------
+# -----------------------------------------------------
 
 def test_query(db_path: Path, question: str, n: int = 3):
     client = get_chroma_client(db_path)
@@ -168,10 +145,9 @@ def test_query(db_path: Path, question: str, n: int = 3):
     metas = results.get("metadatas", [[]])[0]
 
     for i, (doc, meta) in enumerate(zip(docs, metas), start=1):
-        print(f"#{i}")
-        print("Source:", meta.get("source_file"))
-        print("Section:", meta.get("section_id"), "| Clause:", meta.get("clause_id"))
-        print("Text:", doc)
+        print(f"#{i} | {meta.get('chunk_id')}")
+        print(f"Section: {meta.get('section_id')} | Clause: {meta.get('clause_id')}")
+        print(doc[:200], "...")
         print("----------------------------------")
 
     return results

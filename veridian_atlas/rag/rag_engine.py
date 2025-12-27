@@ -4,13 +4,10 @@ rag_engine.py
 Core Retrieval-Augmented Generation engine for Veridian Atlas.
 
 Responsibilities:
-- Connect to Chroma DB
-- Retrieve relevant chunks for a query
-- Build a citation-ready prompt
-- Call a local LLM (Qwen) for final answer generation
-
-Dependencies:
-    pip install chromadb sentence-transformers
+- Connect to Chroma and retrieve relevant chunks
+- Build context-aware prompt with chunk IDs for citation
+- Forward prompt to local Qwen-0.5B for JSON answer
+- Return UI/Backend friendly structure
 """
 
 from pathlib import Path
@@ -19,7 +16,8 @@ from typing import List, Dict, Any
 import chromadb
 from chromadb.config import Settings
 
-from veridian_atlas.rag.local_llm import LocalQwenLLM  # Qwen model wrapper
+from veridian_atlas.rag.local_llm import generate_response
+
 
 # ----------------------------------------
 # CONFIG
@@ -27,39 +25,41 @@ from veridian_atlas.rag.local_llm import LocalQwenLLM  # Qwen model wrapper
 
 DEFAULT_DB_PATH = Path("veridian_atlas/data/indexes/chroma_db")
 COLLECTION_NAME = "veridian_atlas"
-TOP_K = 5  # number of chunks to retrieve per query
+TOP_K = 5
 
 
 # ----------------------------------------
-# Chroma Setup
+# CHROMA CONNECTION
 # ----------------------------------------
 
 def get_chroma_collection(db_path: Path = DEFAULT_DB_PATH):
-    """Load Chroma client + target collection."""
+    """
+    Connect to Chroma and load the target collection.
+    Raises a clear error if the index doesn't exist.
+    """
     client = chromadb.PersistentClient(
         path=str(db_path),
         settings=Settings(anonymized_telemetry=False)
     )
+
     try:
-        collection = client.get_collection(COLLECTION_NAME)
-    except:
+        return client.get_collection(COLLECTION_NAME)
+    except Exception as err:
         raise RuntimeError(
-            f"[RAG] No Chroma collection named '{COLLECTION_NAME}' found. "
-            f"Run embeddings/index builder first."
-        )
-    return collection
+            f"[RAG ERROR] No Chroma collection named '{COLLECTION_NAME}'.\n"
+            f"Run embeddings first → start_embeddings.py"
+        ) from err
 
 
 # ----------------------------------------
-# Retrieval Layer
+# RETRIEVAL LAYER
 # ----------------------------------------
 
-def retrieve_context(query: str, top_k: int = TOP_K) -> Dict[str, Any]:
+def retrieve_context(query: str, top_k: int = TOP_K) -> List[Dict[str, Any]]:
     """
-    Performs a similarity search and returns:
-      - top documents
-      - metadata for citation
-      - reference mapping for prompt assembly
+    Run similarity search over vector DB.
+    Always returns a list of context objects:
+        { chunk_id, content, section, clause, distance }
     """
     collection = get_chroma_collection()
 
@@ -69,42 +69,47 @@ def retrieve_context(query: str, top_k: int = TOP_K) -> Dict[str, Any]:
         include=["documents", "metadatas", "distances"]
     )
 
-    # Flatten for easier consumption
-    docs = results["documents"][0]
-    metas = results["metadatas"][0]
-    dists = results["distances"][0]
+    docs = results.get("documents", [[]])[0]
+    metas = results.get("metadatas", [[]])[0]
+    dists = results.get("distances", [[]])[0]
 
-    # Build citation objects
-    citations = []
+    contexts = []
     for doc, meta, dist in zip(docs, metas, dists):
-        citations.append({
-            "chunk_id": meta.get("chunk_id", "UNKNOWN"),
+        chunk_id = (
+            meta.get("chunk_id")
+            or meta.get("id")
+            or meta.get("section_id")
+            or "UNKNOWN_CHUNK"
+        )
+
+        contexts.append({
+            "chunk_id": chunk_id,
+            "content": doc,
             "section": meta.get("section_id"),
             "clause": meta.get("clause_id"),
             "distance": float(dist),
-            "content": doc
         })
 
-    return {
-        "docs": docs,
-        "citations": citations,
-        "context_blocks": docs,
-    }
+    return contexts
 
 
 # ----------------------------------------
-# Prompt Construction
+# PROMPT CONSTRUCTION
 # ----------------------------------------
 
-def build_rag_prompt(query: str, context_blocks: List[str]) -> str:
-    """
-    Create a structured prompt for the Qwen model.
-    """
-    context_text = "\n\n--- SOURCE CHUNK ---\n\n".join(context_blocks)
+def build_rag_prompt(query: str, contexts: List[dict]) -> str:
+    blocks = []
+    for c in contexts:
+        clean_text = c["content"].replace("\n", " ").strip()
+        blocks.append(f"[{c['chunk_id']}] {clean_text}")
+
+    context_text = "\n".join(blocks)
 
     prompt = f"""
-You are a financial contract assistant. Use ONLY the context below to answer.
-If the answer is not present in the context, say "The provided text does not contain enough information."
+You are a financial contract analysis assistant.
+
+Use ONLY the context provided. If the answer is not present, respond exactly with:
+"The provided text does not contain enough information."
 
 QUESTION:
 {query}
@@ -112,59 +117,63 @@ QUESTION:
 CONTEXT:
 {context_text}
 
-RULES:
-- Answer concisely.
-- Quote exact phrases when possible.
-- Provide citations as a list of chunk IDs used.
+RESPONSE RULES:
+- Respond ONLY in valid JSON.
+- "answer" must be a short sentence.
+- "citations" must reference only chunk IDs from the context.
+- No prose, no markdown, no extra text — JSON only.
 
-FINAL ANSWER FORMAT (JSON):
+OUTPUT FORMAT:
 {{
-  "answer": "...the answer...",
+  "answer": "...",
   "citations": ["chunk_id_1", "chunk_id_2"]
 }}
-"""
-    return prompt.strip()
+""".strip()
+
+    return prompt
+
 
 
 # ----------------------------------------
-# Generate Final Response
+# MAIN QUERY PIPELINE
 # ----------------------------------------
 
-def answer_query(query: str) -> Dict[str, Any]:
+def answer_query(query: str, top_k: int = TOP_K) -> Dict[str, Any]:
     """
-    Main RAG pipeline:
-        retrieve → build prompt → generate answer → return structured result
+    Full RAG pipeline:
+        1. retrieve context chunks
+        2. build prompt
+        3. pass to model
+        4. return citation-linked JSON
     """
-    retrieved = retrieve_context(query)
-    context_blocks = retrieved["context_blocks"]
+    contexts = retrieve_context(query, top_k=top_k)
 
-    if not context_blocks:
+    # no retrieval results
+    if not contexts:
         return {
-            "answer": "No relevant information found in the indexed documents.",
-            "citations": []
+            "query": query,
+            "answer": "The provided text does not contain enough information.",
+            "citations": [],
+            "sources": []
         }
 
-    # Build prompt for LLM
-    prompt = build_rag_prompt(query, context_blocks)
+    prompt = build_rag_prompt(query, contexts)
+    llm_response = generate_response(prompt)
 
-    # Call local Qwen model
-    llm = LocalQwenLLM()  # uses CPU
-    llm_response = llm.generate(prompt)
-
-    # Return combined structure
+    # final payload for UI or API response
     return {
+        "query": query,
         "answer": llm_response,
-        "citations": [c["chunk_id"] for c in retrieved["citations"]],
-        "sources": retrieved["citations"]
+        "citations": [c["chunk_id"] for c in contexts],
+        "sources": contexts
     }
 
 
 # ----------------------------------------
-# If manually run
+# Manual Test
 # ----------------------------------------
 
 if __name__ == "__main__":
-    test_q = "What is the interest rate for the Revolving Credit Facility?"
-    result = answer_query(test_q)
-    print("\n[RESULT]")
+    test_question = "What is the interest rate for the Revolving Credit Facility?"
+    result = answer_query(test_question)
     print(result)

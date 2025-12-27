@@ -1,15 +1,4 @@
 # veridian_atlas/kickoff/start_embeddings.py
-"""
-Kickstart: Build or update embeddings + Chroma index from chunks.jsonl,
-then run a retrieval test to confirm index behavior.
-
-Run AFTER:
-- text_loader/router
-- chunker.py
-
-Command:
-    python -m veridian_atlas.kickoff.start_embeddings
-"""
 
 from pathlib import Path
 from chromadb import PersistentClient
@@ -17,9 +6,7 @@ from chromadb.config import Settings
 from veridian_atlas.index.index_builder import build_chroma_index
 
 TEST_QUERY = "What is the interest rate for the Revolving Credit Facility?"
-
-# This MUST match index_builder.py
-COLLECTION_NAME = "veridian_atlas"
+COLLECTION_NAME = "veridian_atlas"  # must match index_builder.py
 
 if __name__ == "__main__":
     deal = "Blackbay_III"
@@ -32,23 +19,30 @@ if __name__ == "__main__":
     print(f"DB Target:  {db_path}")
     print("--------------------------------------------------")
 
-    # PRECHECK
+    # Safety Checks
     if not chunks_path.exists():
         raise FileNotFoundError(f"[ERROR] chunks.jsonl missing → {chunks_path}")
     if chunks_path.stat().st_size == 0:
         raise RuntimeError("[ERROR] chunks.jsonl is empty. Run chunker.py first.")
 
-    # STEP 1: Build / Refresh Index
-    build_chroma_index(chunks_path, db_path, reset_existing=True)
-    print("[OK] Embeddings + Chroma index build complete.\n")
+    # --------------------------------------------------
+    # STEP 1: Build / Refresh Chroma Index
+    # --------------------------------------------------
+    build_chroma_index(
+        chunks_path=chunks_path,
+        db_path=db_path,
+        reset_existing=True
+    )
+    print("\n[OK] Embeddings + Chroma index build complete.\n")
 
-    # STEP 2: Connect to DB
+    # --------------------------------------------------
+    # STEP 2: Connect to DB for quick sanity check
+    # --------------------------------------------------
     client = PersistentClient(
         path=str(db_path),
         settings=Settings(anonymized_telemetry=False)
     )
 
-    # STEP 3: Validate Collections
     collections = client.list_collections()
     print("[CHECK] Collections found:")
     for col in collections:
@@ -56,15 +50,13 @@ if __name__ == "__main__":
     print("--------------------------------------------------")
 
     if COLLECTION_NAME not in [c.name for c in collections]:
-        raise RuntimeError(
-            f"[FAIL] Expected collection '{COLLECTION_NAME}' not found. "
-            "Index may not have built correctly."
-        )
+        raise RuntimeError(f"[FAIL] Missing expected collection: {COLLECTION_NAME}")
 
-    # Get the correct collection
-    collection = client.get_collection(name=COLLECTION_NAME)
+    collection = client.get_collection(COLLECTION_NAME)
 
-    # STEP 4: Test Query
+    # --------------------------------------------------
+    # STEP 3: TEST QUERY
+    # --------------------------------------------------
     print("[TEST QUERY]")
     print("Query:", TEST_QUERY, "\n")
 
@@ -75,17 +67,17 @@ if __name__ == "__main__":
     )
 
     docs = results.get("documents", [[]])[0]
-    meta = results.get("metadatas", [[]])[0]
+    metas = results.get("metadatas", [[]])[0]
     dists = results.get("distances", [[]])[0]
 
     print("Top Matches:")
-    for doc, m, score in zip(docs, meta, dists):
+    for doc, meta, score in zip(docs, metas, dists):
         print("--------------------------------------------------")
-        print(f"Score:    {score:.4f}")
-        print(f"Section:  {m.get('section_id')}")
-        print(f"Clause:   {m.get('clause_id')}")
+        print(f"Score:      {score:.4f}")
+        print(f"Chunk ID:   {meta.get('chunk_id')}")
+        print(f"Section:    {meta.get('section_id')} | Clause: {meta.get('clause_id')}")
         print("Text:")
-        print(doc[:300] + ("..." if len(doc) > 300 else ""))
+        print(doc[:280] + ("..." if len(doc) > 280 else ""))
 
     print("--------------------------------------------------")
     print("[OK] Embeddings & retrieval test completed successfully.")
