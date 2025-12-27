@@ -1,34 +1,25 @@
 // src/App.jsx
-import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { askRagQuestion, fetchChunk } from "@/api/client";
+import { useState, useEffect } from "react";
 
-// shadcn UI
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import {
-  Sheet,
-  SheetTrigger,
-  SheetContent,
-  SheetTitle,
-  SheetHeader
-} from "@/components/ui/sheet";
+// Components
+import Sidebar from "./components/Sidebar";
+import PromptInput from "./components/PromptInput";
+import ConversationView from "./components/ConversationView";
+import LoadingState from "./components/LoadingState";
+
+// API
+import { askRagQuestion } from "@/api/client";
 
 export default function App() {
   // ------------------ STATE ------------------
   const [query, setQuery] = useState("");
   const [data, setData] = useState(null);
-  const [history, setHistory] = useState(() => {
-    return JSON.parse(localStorage.getItem("veridian-history") || "[]");
-  });
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [activeCitation, setActiveCitation] = useState(null);
-  const [chunkCache, setChunkCache] = useState({});
-  const [historyOpen, setHistoryOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const [history, setHistory] = useState(() =>
+    JSON.parse(localStorage.getItem("veridian-history") || "[]")
+  );
 
   // ------------------ PERSIST HISTORY ------------------
   useEffect(() => {
@@ -36,227 +27,142 @@ export default function App() {
   }, [history]);
 
   // ------------------ RUN QUERY ------------------
-  const handleAsk = async (customQ) => {
-    const question = typeof customQ === "string" ? customQ : query;
-    if (!question.trim()) return;
+  const handleAsk = async () => {
+    if (!query.trim()) return;
 
     setLoading(true);
     setError("");
     setData(null);
 
     try {
-      const res = await askRagQuestion(question);
+      const res = await askRagQuestion(query);
       setData(res);
 
-      const entry = {
-        query: question,
-        timestamp: new Date().toLocaleString(), // store timestamp
-      };
-
-      // prevent duplicate stacking
-      if (!history.length || history[history.length - 1].query !== question) {
-        setHistory((prev) => [...prev, entry]);
+      // Save history without duplicate stacking
+      if (!history.length || history[history.length - 1].query !== query) {
+        setHistory((prev) => [...prev, { query, timestamp: new Date().toISOString() }]);
       }
 
-    } catch {
-      setError("Something went wrong while retrieving data. Try again.");
+    } catch (err) {
+      console.error("RAG Error:", err);
+      setError("Something went wrong while processing your request.");
     }
 
     setLoading(false);
   };
 
-  const loadHistoryItem = (q) => {
-      setQuery(q);
-      setData(null);
-      setError("");
-      setActiveCitation(null);
-      setHistoryOpen(false); // now this works ✔
-    };
-
-  // ------------------ CITATION LOADER ------------------
-  const loadCitation = async (id) => {
-    if (chunkCache[id]) return setActiveCitation(chunkCache[id]);
-
-    try {
-      const res = await fetchChunk(id);
-      const formatted = {
-        id,
-        content: res.documents?.[0] ?? "No text available.",
-        meta: res.metadatas?.[0] ?? null,
-      };
-      setChunkCache((prev) => ({ ...prev, [id]: formatted }));
-      setActiveCitation(formatted);
-    } catch {
-      setActiveCitation({ content: "Could not load clause text." });
-    }
-  };
-
+  // ------------------ RESET ------------------
   const reset = () => {
     setQuery("");
     setData(null);
     setError("");
-    setActiveCitation(null);
   };
 
-  // ------------------ UI ------------------
+  // ------------------ RENDER ------------------
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col items-center
-    px-4 sm:px-8 md:px-10 lg:px-16 xl:px-24 py-16">
+    <div className="flex min-h-screen bg-[#101010] text-gray-200 font-brand">
 
-      {/* -------- HISTORY SIDEBAR -------- */}
-      <div className="absolute top-6 left-6">
-        <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
-          <SheetTrigger asChild>
-            <Button
-              variant="outline"
-              className="text-sm border-slate-300 hover:bg-slate-100"
-              onClick={() => setHistoryOpen(true)}
-            >
-              History
-            </Button>
-          </SheetTrigger>
+      {/* SIDEBAR */}
+      <Sidebar
+        history={history}
+        setHistory={setHistory}
+        onSelect={setQuery}
+        onNewChat={reset}
+      />
 
-          <SheetContent side="left" className="w-72 bg-white border-r border-slate-200">
-            <SheetHeader>
-              <SheetTitle className="text-slate-700 font-medium text-lg">Query History</SheetTitle>
-            </SheetHeader>
+      {/* MAIN PANEL */}
+      <main className="flex-1 flex flex-col items-center overflow-y-auto relative">
 
-            <div className="mt-6 space-y-3 overflow-y-auto h-[80vh] pr-1">
-              {history.length === 0 && (
-                <p className="text-xs text-slate-500 mt-4">No queries yet.</p>
-              )}
+        {/* TOP HEADER BAR (ChatGPT-like) */}
+        <header
+          className="
+            w-full border-b border-[#222]
+            bg-[#171717]/80 backdrop-blur-md
+            sticky top-0 z-40
+            flex items-center justify-between px-6 py-3
+          "
+        >
+          <h2 className="text-sm font-medium text-gray-300 tracking-wide">
+            Veridian Atlas
+          </h2>
+          <span className="text-[11px] text-gray-500">
+            RAG Engine v1 • Contract Intelligence
+          </span>
+        </header>
 
-              {history.map((item, index) => (
-                <button
-                  key={index}
-                  onClick={() => loadHistoryItem(item.query)}
-                  className="w-full text-left bg-slate-50 hover:bg-slate-100 border border-slate-200
-                  p-3 rounded-md transition flex flex-col gap-1"
-                >
-                  <span className="text-sm text-slate-800 font-medium">{item.query}</span>
-                  <span className="text-[10px] text-slate-500">{item.timestamp}</span>
-                </button>
-              ))}
-            </div>
-          </SheetContent>
-        </Sheet>
+        {/* BACKDROP + RADIAL GLOW */}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#1a1a1a] to-[#0f0f0f]" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(150,150,150,0.08),transparent_65%)]" />
 
-      </div>
+        {/* LANDING PAGE (NO DATA + NOT LOADING) */}
+        {!data && !loading && (
+          <div className="flex flex-col items-center text-center pt-32 pb-24 max-w-3xl relative z-10">
 
-      {/* -------- BRAND HEADER -------- */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-center mb-10 md:mb-16 space-y-4"
-      >
-        <div className="mx-auto h-14 w-14 rounded-lg bg-sky-200 border border-sky-300 flex items-center justify-center shadow-sm">
-          <span className="text-sky-700 font-bold tracking-tight">VA</span>
+          <div className="absolute top-24 w-96 h-32 blur-3xl bg-[#ffffff0a]" />
+
+          <h1
+            className="
+              text-6xl font-bold mb-3 select-none font-brand
+              bg-gradient-to-r from-[#ECECEC] via-[#D7D7D7] to-[#BEBEBE]
+              bg-clip-text text-transparent
+              tracking-tight leading-none
+              drop-shadow-[0_0_14px_rgba(255,255,255,0.08)]
+              hover:drop-shadow-[0_0_22px_rgba(255,255,255,0.12)]
+              transition-all duration-300
+            "
+          >
+            Veridian Atlas
+          </h1>
+
+          <div className="h-[1px] w-24 bg-gradient-to-r from-transparent via-gray-600 to-transparent my-3" />
+
+          <p
+            className="
+              text-[15px] font-medium mb-10
+              bg-gradient-to-r from-[#F0F0F0] via-[#C8C8C8] to-[#7C7C7C]
+              bg-clip-text text-transparent
+              tracking-tight leading-snug
+            "
+          >
+            Precision search. Verified citations.
+          </p>
+
+
+          <PromptInput query={query} setQuery={setQuery} onAsk={handleAsk} />
         </div>
 
-        <h1 className="font-semibold text-4xl sm:text-5xl md:text-6xl tracking-tight text-slate-900">
-          Veridian Atlas
-        </h1>
-        <p className="text-slate-600 max-w-2xl mx-auto leading-relaxed text-base sm:text-lg">
-          Ask contract questions. Get answers. Verify every clause.
-        </p>
-      </motion.div>
-
-      {/* -------- INPUT CARD -------- */}
-      {!data && !loading && (
-        <Card className="w-full max-w-lg sm:max-w-2xl lg:max-w-3xl bg-white border border-slate-200 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-base font-medium text-slate-700">
-              Ask your question
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-5 flex flex-col sm:flex-row gap-3">
-            <Input
-              placeholder="Example: When does Term Loan A mature?"
-              className="bg-slate-100 text-slate-800 border-slate-300"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleAsk()}
-            />
-            <Button className="w-full sm:w-auto bg-sky-500 hover:bg-sky-600" onClick={() => handleAsk()}>
-              Ask
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* -------- LOADING -------- */}
-      <AnimatePresence>
-        {loading && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="mt-10 text-slate-500 italic text-center">
-            Reading clauses… checking covenants… scanning ledgers…
-          </motion.div>
         )}
-      </AnimatePresence>
 
-      {/* -------- ERROR -------- */}
-      {error && (
-        <Alert variant="destructive" className="max-w-xl mt-10">
-          <AlertTitle>Something went wrong</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
+        {/* LOADING EXPERIENCE */}
+        {loading && (
+          <div className="relative z-10">
+            <LoadingState />
+          </div>
+        )}
 
-      {/* -------- ANSWER CARD -------- */}
-      {data && (
-        <Card className="w-full max-w-lg sm:max-w-2xl lg:max-w-3xl mt-14 bg-white border border-slate-200 shadow-md 
-        p-8 sm:p-10 md:p-12 space-y-10">
+        {/* ANSWER RESULT CARD */}
+        {!loading && (
+          <div className="w-full flex justify-center relative z-10">
+            <ConversationView data={data} error={error} reset={reset} />
+          </div>
+        )}
 
-          {/* QUESTION */}
-          <section className="space-y-1">
-            <h3 className="text-xs uppercase font-medium text-slate-500">Question</h3>
-            <p className="text-xl font-semibold text-slate-900">{data.query}</p>
-          </section>
-
-          {/* ANSWER */}
-          <section className="space-y-1">
-            <h3 className="text-xs uppercase font-medium text-slate-500">Answer</h3>
-            <p className="text-lg text-slate-800 leading-relaxed">{data.answer}</p>
-          </section>
-
-          {/* CITATIONS */}
-          <section className="space-y-2">
-            <h3 className="text-xs uppercase font-medium text-slate-500">Citations</h3>
-            <div className="flex flex-wrap gap-2">
-              {data.citations?.map((id) => (
-                <Popover key={id}>
-                  <PopoverTrigger asChild>
-                    <button
-                      onClick={() => loadCitation(id)}
-                      className="text-xs sm:text-sm bg-slate-100 border border-slate-300 px-2 sm:px-3 py-1 rounded-md hover:bg-slate-200"
-                    >
-                      {id.split("::").slice(-1)}
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="bg-white border border-slate-200 p-4 w-[95vw] sm:w-80 md:w-96 text-sm shadow-xl">
-                    {activeCitation?.id === id ? (
-                      <>
-                        <p className="font-medium text-slate-800">{activeCitation.meta?.clause_title}</p>
-                        <p className="whitespace-pre-line text-slate-600">{activeCitation.content}</p>
-                        <p className="text-xs text-slate-400 border-t pt-2 mt-2">
-                          Section {activeCitation.meta?.section_id} • Clause {activeCitation.meta?.clause_id}
-                        </p>
-                      </>
-                    ) : (
-                      <p className="italic text-slate-500">Loading...</p>
-                    )}
-                  </PopoverContent>
-                </Popover>
-              ))}
+        {/* BOTTOM INPUT (only after answered) */}
+        {data && !loading && (
+          <footer
+            className="
+              sticky bottom-0 w-full flex justify-center
+              bg-[#171717]/90 backdrop-blur-lg border-t border-[#222]
+              p-6 z-40
+            "
+          >
+            <div className="w-full max-w-3xl">
+              <PromptInput query={query} setQuery={setQuery} onAsk={handleAsk} />
             </div>
-          </section>
+          </footer>
+        )}
 
-          {/* RESET */}
-          <Button className="w-full bg-slate-200 text-slate-800 hover:bg-slate-300" onClick={reset}>
-            Ask Another Question
-          </Button>
-        </Card>
-      )}
+      </main>
     </div>
   );
 }

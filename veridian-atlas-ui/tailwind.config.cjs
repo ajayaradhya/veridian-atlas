@@ -7,6 +7,9 @@ module.exports = {
   ],
   theme: {
   	extend: {
+		fontFamily: {
+			brand: ['Inter Tight', 'sans-serif'],
+		},
   		borderRadius: {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',
