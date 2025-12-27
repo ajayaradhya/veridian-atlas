@@ -1,3 +1,4 @@
+// src/components/LoadingState.jsx
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 
@@ -13,32 +14,53 @@ const messages = [
 
 export default function LoadingState() {
   const [index, setIndex] = useState(0);
+  const [fade, setFade] = useState(true);
 
-  // Rotate through messages every 1.5 seconds
+  // Rotate messages every 2 seconds with fade
   useEffect(() => {
     const interval = setInterval(() => {
-      setIndex((i) => (i + 1) % messages.length);
-    }, 1500);
+      setFade(false);
+      setTimeout(() => {
+        setIndex((i) => (i + 1) % messages.length);
+        setFade(true);
+      }, 250);
+    }, 2000);
     return () => clearInterval(interval);
   }, []);
 
   return (
-    <div className="flex flex-col items-center justify-center mt-24 space-y-6 text-gray-300 relative z-10 animate-fadeIn">
+    <div className="flex flex-col items-center justify-center pt-32 pb-20 relative z-10">
       
-      {/* Spinner */}
-      <Loader2 className="w-10 h-10 text-gray-400 animate-spin" />
+      {/* Center Glow */}
+      <div className="absolute w-52 h-52 bg-[#ffffff0a] blur-3xl rounded-full" />
 
-      {/* Dynamic message */}
-      <p className="text-lg font-medium text-gray-300 transition-opacity duration-500">
+      {/* Spinner with soft breathing motion */}
+      <div className="flex items-center justify-center mb-6 animate-[pulse_1.8s_ease-in-out_infinite]">
+        <Loader2 className="w-12 h-12 text-gray-400 animate-spin drop-shadow-[0_0_6px_rgba(255,255,255,0.25)]" />
+      </div>
+
+      {/* Status Message w/ Fade */}
+      <p
+        className={`
+          text-[17px] font-medium text-gray-200 select-none
+          transition-opacity duration-300
+          ${fade ? "opacity-100" : "opacity-0"}
+        `}
+      >
         {messages[index]}
       </p>
 
-      {/* Animated dots */}
-      <div className="flex gap-2 mt-2">
+      {/* Progress Pulse Bar */}
+      <div className="mt-6 w-40 h-[3px] bg-[#2a2a2a] rounded-full overflow-hidden">
+        <div className="h-full bg-gray-300 rounded-full animate-[loaderbar_1.5s_linear_infinite]" />
+      </div>
+
+      {/* Dot loader underbar
+      <div className="flex gap-2 mt-4 opacity-70">
         <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" />
         <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-150" />
         <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-300" />
-      </div>
+      </div> */}
     </div>
   );
 }
