@@ -4,147 +4,174 @@ index_builder.py
 Builds and manages a Chroma vector index from Veridian Atlas chunks.
 
 Input:
-    data/processed/chunks.jsonl    ← produced by chunker.py
+    chunks.jsonl (output from chunker.py)
 
 Output:
-    data/indexes/chroma_db/        ← persistent local vector DB
+    chroma_db/  (local persistent vector DB for retrieval)
 
-Features:
-- Local embeddings (no API keys needed)
-- Idempotent: repeated runs do not duplicate IDs
-- Supports both append + rebuild modes
-- Safe fallbacks for empty or malformed chunks
+Enhancements:
+- Accepts "content", "text", or "section_text" as the primary payload
+- Normalizes metadata → Chroma-safe dict
+- Prevents orphan fields & duplicated inserts
+- Optional auto-reset via parameter
+- Upsert-like behavior: same ID = overwrite
 """
 
 from pathlib import Path
 import json
+import shutil
 import chromadb
 from chromadb.config import Settings
-from veridian_atlas.embeddings.embedder import hf_embedder  # local HF embedder
+from veridian_atlas.embeddings.embedder import hf_embedder  # HF local embedder
 
-# -----------------------------------------------------
-# CONFIG / TARGET COLLECTION
-# -----------------------------------------------------
+
+# ---------------------------------------------
+# CONFIG
+# ---------------------------------------------
 
 COLLECTION_NAME = "veridian_atlas"
-DEFAULT_DB_PATH = Path("data/indexes/chroma_db")
 
 
-# -----------------------------------------------------
-# CREATE OR LOAD CHROMA DB
-# -----------------------------------------------------
-
-def get_chroma_client(db_path: Path = DEFAULT_DB_PATH):
+def get_chroma_client(db_path: Path):
+    """Create or connect to local Chroma DB."""
     db_path.mkdir(parents=True, exist_ok=True)
-    client = chromadb.PersistentClient(
+    return chromadb.PersistentClient(
         path=str(db_path),
         settings=Settings(anonymized_telemetry=False)
     )
-    return client
 
 
 def get_or_create_collection(client):
+    """Load or create vector collection."""
     return client.get_or_create_collection(
         name=COLLECTION_NAME,
-        metadata={"hnsw:space": "cosine"}  # sentence-transformers default
+        metadata={"hnsw:space": "cosine"}  # better for sentence-transformers
     )
 
 
-# -----------------------------------------------------
-# BUILD INDEX FROM CHUNKS
-# -----------------------------------------------------
+# ---------------------------------------------
+# INDEX BUILDING
+# ---------------------------------------------
 
 def build_chroma_index(
     chunks_path: Path,
-    db_path: Path = DEFAULT_DB_PATH,
+    db_path: Path,
+    reset_existing: bool = False,
     batch_size: int = 64
 ):
     """
-    Loads chunks from JSONL, generates local embeddings, and inserts into Chroma.
+    Build or update a Chroma index with embeddings from chunks.jsonl.
 
     Args
     ----
-    chunks_path : Path → path to chunks.jsonl
-    db_path     : Path → persistence directory
-    batch_size  : int  → embedding batch size (increase if GPU available)
+    chunks_path     : Path to chunks.jsonl
+    db_path         : Directory to store / load index
+    reset_existing  : If True → wipe old index first
+    batch_size      : Embedding batch size
     """
 
     if not chunks_path.exists():
-        raise FileNotFoundError(f"[ERROR] chunks.jsonl not found at: {chunks_path}")
+        raise FileNotFoundError(f"[ERROR] chunks.jsonl missing → {chunks_path}")
+
+    if reset_existing and db_path.exists():
+        print(f"[RESET] Removing old Chroma index → {db_path}")
+        shutil.rmtree(db_path)
 
     print(f"\n[LOAD] Reading chunks from → {chunks_path}")
-    print(f"[DB] Target index → {db_path}\n")
+    print(f"[DB] Target Chroma path → {db_path}\n")
 
     client = get_chroma_client(db_path)
     collection = get_or_create_collection(client)
 
-    texts, ids, metadata = [], [], []
+    ids, contents, metadatas = [], [], []
 
     with open(chunks_path, "r", encoding="utf-8") as f:
         for line in f:
-            data = json.loads(line)
-            text = data.get("text") or data.get("section_text")
+            raw = json.loads(line)
 
-            if not text or not text.strip():
-                continue  # skip empty unusable chunks
+            # unified reader for all variants of text fields
+            content = raw.get("content") or raw.get("text") or raw.get("section_text")
+            if not content or not content.strip():
+                continue
 
-            chunk_id = data["chunk_id"]
+            chunk_id = raw["chunk_id"]
+
+            # build chroma-safe metadata (nested dicts removed)
+            metadata = {
+                "deal_name": raw.get("deal_name"),
+                "source_file": raw.get("source_file"),
+                "level": raw.get("level"),
+                "section_id": raw.get("section_id"),
+                "clause_id": raw.get("clause_id"),
+                "section_title": raw.get("section_title"),
+                "clause_title": raw.get("clause_title"),
+            }
 
             ids.append(chunk_id)
-            texts.append(text.strip())
-            metadata.append(data)
+            contents.append(content.strip())
+            metadatas.append({k: v for k, v in metadata.items() if v is not None})
 
-    print(f"[STATS] Total chunks to embed: {len(texts)}")
-    if len(texts) == 0:
-        print("[WARN] No valid text chunks found. Aborting.")
+    print(f"[STATS] Found {len(ids)} chunks with content.")
+    if len(ids) == 0:
+        print("[WARN] No valid chunks to embed. Aborting.")
         return collection
 
-    # -------------------------------------------------
-    # Batch Embedding & Insert
-    # -------------------------------------------------
-    for i in range(0, len(texts), batch_size):
-        batch_texts = texts[i:i+batch_size]
+    # -----------------------------------------
+    # BATCH EMBEDDINGS + INSERT
+    # -----------------------------------------
+    for i in range(0, len(ids), batch_size):
         batch_ids = ids[i:i+batch_size]
-        batch_meta = metadata[i:i+batch_size]
+        batch_texts = contents[i:i+batch_size]
+        batch_meta = metadatas[i:i+batch_size]
 
         vectors = hf_embedder.embed(batch_texts)
 
-        collection.add(
+        collection.upsert(
             ids=batch_ids,
             documents=batch_texts,
             metadatas=batch_meta,
-            embeddings=vectors,
+            embeddings=vectors
         )
 
-        print(f"[BATCH] Embedded + stored chunks {i} → {i+len(batch_texts)-1}")
+        print(f"[BATCH] Stored chunks {i} → {i + len(batch_ids) - 1}")
 
-    print(f"\n[OK] Indexed {len(ids)} chunks into Chroma @ {db_path}")
+    print(f"\n[OK] Indexed {len(ids)} chunks into → {db_path}")
     return collection
 
 
-# -----------------------------------------------------
-# OPTIONAL: REBUILD FROM SCRATCH
-# -----------------------------------------------------
+# ---------------------------------------------
+# FORCE REBUILD
+# ---------------------------------------------
 
-def rebuild_index(chunks_path: Path, db_path: Path = DEFAULT_DB_PATH):
+def rebuild_index(chunks_path: Path, db_path: Path):
     if db_path.exists():
-        import shutil
-        print(f"[RESET] Removing existing index → {db_path}")
+        print(f"[REBUILD] Clearing index folder → {db_path}")
         shutil.rmtree(db_path)
-    return build_chroma_index(chunks_path, db_path)
+    return build_chroma_index(chunks_path, db_path, reset_existing=False)
 
 
-# -----------------------------------------------------
-# QUICK TEST QUERY
-# -----------------------------------------------------
+# ---------------------------------------------
+# TEST QUERY
+# ---------------------------------------------
 
-def test_query(query: str, n: int = 3, db_path: Path = DEFAULT_DB_PATH):
+def test_query(db_path: Path, question: str, n: int = 3):
     client = get_chroma_client(db_path)
     collection = get_or_create_collection(client)
 
-    results = collection.query(
-        query_texts=[query],
-        n_results=n
-    )
-    print("\n[QUERY RESULTS]")
+    results = collection.query(query_texts=[question], n_results=n)
+
+    print("\n=========== QUERY TEST ===========")
+    print("Q:", question)
+    print("----------------------------------")
+
+    docs = results.get("documents", [[]])[0]
+    metas = results.get("metadatas", [[]])[0]
+
+    for i, (doc, meta) in enumerate(zip(docs, metas), start=1):
+        print(f"#{i}")
+        print("Source:", meta.get("source_file"))
+        print("Section:", meta.get("section_id"), "| Clause:", meta.get("clause_id"))
+        print("Text:", doc)
+        print("----------------------------------")
+
     return results

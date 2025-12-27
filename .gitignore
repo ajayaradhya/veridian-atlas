@@ -29,7 +29,7 @@ env/
 # veridian_atlas/data/**/raw/*
 # veridian_atlas/data/**/processed/*
 # veridian_atlas/data/**/chunks/*
-# veridian_atlas/data/**/embeddings/*
+veridian_atlas/data/indexes/chroma_db/*
 # veridian_atlas/data/tmp/
 
 # Allow schema/example files if needed
