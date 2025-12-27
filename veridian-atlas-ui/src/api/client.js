@@ -1,12 +1,15 @@
-const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+const BASE = "http://127.0.0.1:8000";
 
-export async function askRagQuestion(query, top_k = 4) {
-  const response = await fetch(`${API_URL}/ask`, {
+export async function askRagQuestion(query) {
+  const res = await fetch(`${BASE}/ask`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ query, top_k }),
+    body: JSON.stringify({ query })
   });
+  return res.json();
+}
 
-  if (!response.ok) throw new Error(`API Error: ${response.status}`);
-  return await response.json();
+export async function fetchChunk(id) {
+  const res = await fetch(`${BASE}/chunk/${id}`);
+  return res.json();
 }

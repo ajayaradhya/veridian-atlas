@@ -1,39 +1,66 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { askRagQuestion } from "@/api/client";
+import { askRagQuestion, fetchChunk } from "@/api/client";
 
-// shadcn/ui components
+// shadcn components
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 export default function App() {
   const [query, setQuery] = useState("");
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [activeCitation, setActiveCitation] = useState(null); // track clicked citation content
+  const [chunkCache, setChunkCache] = useState({}); // store fetched chunks to avoid reloading
+
+  const loadCitation = async (id) => {
+    // If cached, reuse
+    if (chunkCache[id]) {
+      setActiveCitation({ id, ...chunkCache[id] });
+      return;
+    }
+
+    try {
+      const res = await fetchChunk(id);
+
+      const normalized = {
+        id: res?.ids?.[0] || id,
+        content: res?.documents?.[0] || "No document text found.",
+        meta: res?.metadatas?.[0] || null
+      };
+
+      setChunkCache((prev) => ({ ...prev, [id]: normalized }));
+      setActiveCitation({ ...normalized });
+    } catch (err) {
+      setActiveCitation({ id, content: "Failed to load citation text." });
+    }
+  };
+
 
   const wittyMessages = [
     "Consulting the loan gods...",
     "Interrogating covenants with precision...",
-    "Auditors are panicking but the AI isn't...",
-    "Untangling a century of legal jargon...",
-    "Summoning the spirit of due diligence..."
+    "Breaking down legal jargon atom by atom...",
+    "Feeding the auditors caffeine and hope...",
+    "Extracting answers from structured chaos..."
   ];
 
   const handleAsk = async () => {
-    if (!query.trim()) return; 
+    if (!query.trim()) return;
     setLoading(true);
     setError("");
     setData(null);
+    setActiveCitation(null);
 
     try {
       const res = await askRagQuestion(query);
       setData(res);
     } catch {
-      setError("Something snapped. Finance is hard. Try again.");
+      setError("Unexpected issue — the contract resisted interrogation.");
     }
 
     setLoading(false);
@@ -43,123 +70,131 @@ export default function App() {
     setQuery("");
     setData(null);
     setError("");
+    setActiveCitation(null);
   };
 
-  const handleEnter = (e) => e.key === "Enter" && handleAsk();
-
   return (
-    <div className="min-h-screen bg-neutral-950 text-white flex flex-col items-center px-6 py-20">
+    <div className="min-h-screen bg-neutral-950 text-gray-100 flex flex-col items-center px-6 py-20">
       
-      {/* Branding / Hero */}
+      {/* Branding */}
       <motion.div
-        initial={{ opacity: 0, y: -20 }}
+        initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
         className="text-center mb-16"
       >
-        <h1 className="text-6xl font-extrabold bg-gradient-to-r from-blue-500 to-teal-400 bg-clip-text text-transparent">
+        <h1 className="text-6xl font-extrabold tracking-tight bg-gradient-to-r from-sky-500 to-teal-400 text-transparent bg-clip-text">
           Veridian Atlas
         </h1>
-        <p className="text-gray-400 mt-5 max-w-2xl mx-auto text-lg">
-          AI-powered contract analysis for credit agreements, loan facilities, and covenants. 
-          Ask a question and Veridian Atlas retrieves insights — linked to source clauses.
+        <p className="text-gray-400 mt-5 max-w-2xl mx-auto text-lg leading-relaxed">
+          A retrieval-augmented assistant for financial and lending contracts.
+          Ask questions about clauses, covenants, collateral, maturity dates, and obligations — get answers you can verify.
         </p>
       </motion.div>
 
-      {/* Query Input Card */}
+      {/* Query Input */}
       {!data && !loading && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.96 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.25 }}
-          className="w-full max-w-3xl"
-        >
-          <Card className="bg-neutral-900/60 border-neutral-700 shadow-xl">
-            <CardContent className="p-8 space-y-5">
-              <Textarea
-                placeholder="e.g. What is the interest rate for the Revolving Credit Facility?"
-                className="bg-neutral-800 border-neutral-700 text-lg"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={handleEnter}
-                rows={3}
-              />
-              <Button
-                onClick={handleAsk}
-                className="w-full bg-blue-600 hover:bg-blue-500 text-lg py-6"
-              >
-                Ask the Question
-              </Button>
-            </CardContent>
-          </Card>
-        </motion.div>
+        <Card className="w-full max-w-3xl bg-neutral-900/70 backdrop-blur border border-neutral-700 shadow-xl">
+          <CardContent className="p-8 space-y-5">
+            <Textarea
+              className="bg-neutral-100 text-neutral-900 border-neutral-300 focus:ring-sky-500 text-lg placeholder-neutral-500"
+              placeholder="Example: When does Term Loan A mature?"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              rows={3}
+            />
+            <Button
+              className="w-full py-4 bg-sky-600 hover:bg-sky-500 text-lg"
+              onClick={handleAsk}
+            >
+              Ask the Question
+            </Button>
+          </CardContent>
+        </Card>
       )}
 
-      {/* Loading State */}
+      {/* Loading */}
       {loading && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center mt-12 space-y-6">
-          <Skeleton className="h-8 w-64 bg-neutral-800 mx-auto rounded" />
-          <Skeleton className="h-8 w-80 bg-neutral-800 mx-auto rounded" />
-          <p className="text-gray-400 italic mt-4 animate-pulse">
+        <motion.div className="mt-20 text-center space-y-6">
+          <p className="text-gray-400 italic animate-pulse text-lg">
             {wittyMessages[Math.floor(Math.random() * wittyMessages.length)]}
           </p>
         </motion.div>
       )}
 
-      {/* Error Banner */}
+      {/* Error */}
       {error && (
-        <div className="max-w-2xl w-full mt-10">
-          <Alert variant="destructive">
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        </div>
+        <Alert variant="destructive" className="max-w-2xl w-full mt-10">
+          <AlertTitle>Request Failed</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
       {/* Results */}
       {data && (
-        <motion.div
-          initial={{ opacity: 0, y: 25 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="max-w-3xl w-full mt-16"
-        >
-          <Card className="bg-neutral-900/60 border-neutral-700 p-8 space-y-8 shadow-xl">
-            
-            <section>
-              <h3 className="text-gray-400 text-sm uppercase tracking-wide">Your Question</h3>
-              <p className="text-2xl font-semibold mt-2">{data.query}</p>
-            </section>
+        <Card className="max-w-3xl w-full mt-12 bg-[#111216] border border-neutral-800 shadow-xl p-10 space-y-10">
+          {/* QUESTION */}
+          <section>
+            <h3 className="text-sm tracking-wider uppercase text-neutral-400">Your Question</h3>
+            <p className="text-2xl font-semibold mt-2 text-neutral-100 leading-snug">
+              {data.query}
+            </p>
+          </section>
 
-            <section>
-              <h3 className="text-gray-400 text-sm uppercase tracking-wide">Answer</h3>
-              <p className="text-xl mt-2 text-teal-300 font-medium">{data.answer}</p>
-            </section>
+          {/* ANSWER */}
+          <section>
+            <h3 className="text-sm tracking-wider uppercase text-neutral-400">Answer</h3>
+            <p className="text-xl mt-2 text-teal-300 font-medium leading-relaxed">
+              {data.answer}
+            </p>
+          </section>
 
-            <section>
-              <h3 className="text-gray-400 text-sm uppercase tracking-wide mb-3">Citations</h3>
-              <div className="space-y-2">
-                {data.citations?.map((c, i) => (
-                  <div 
-                    key={i}
-                    className="group relative bg-neutral-800 border border-neutral-700 rounded-lg p-3 text-sm cursor-pointer"
-                  >
-                    <span className="text-blue-400 underline">{c}</span>
-                    <div className="absolute hidden group-hover:block bg-neutral-900 border border-neutral-700 
-                                    p-4 rounded-lg shadow-xl mt-2 left-0 w-full text-xs text-gray-300">
-                      Referenced clause from contract. Full text available in context retrieval.
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
+          {/* CITATIONS */}
+          <section>
+            <h3 className="text-sm tracking-wider uppercase text-neutral-400 mb-3">Citations</h3>
+            <div className="space-y-3">
+              {data.citations?.map((cite, i) => (
+                <Popover key={i}>
+                  <PopoverTrigger asChild>
+                    <button
+                      onClick={() => loadCitation(cite)}
+                      className="text-sky-400 underline hover:text-sky-300 text-sm"
+                    >
+                      {cite}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-96 max-h-64 overflow-y-auto bg-neutral-950 text-gray-300 border border-neutral-800 shadow-xl">
+                    {activeCitation?.id === cite ? (
+                      <div className="space-y-2">
+                        <p className="text-xs text-sky-400 font-semibold">
+                          {activeCitation.meta?.clause_title || "Clause"}
+                        </p>
 
-            <Button 
-              onClick={reset}
-              className="w-full bg-neutral-700 hover:bg-neutral-600 py-5 text-lg"
-            >
-              Ask Another Question
-            </Button>
-          </Card>
-        </motion.div>
+                        <p className="whitespace-pre-line text-sm leading-relaxed">
+                          {activeCitation.content}
+                        </p>
+
+                        <p className="text-xs text-neutral-500 pt-3 border-t border-neutral-800">
+                          Section: {activeCitation.meta?.section_id} • Clause {activeCitation.meta?.clause_id}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-neutral-500 italic">Loading...</p>
+                    )}
+                  </PopoverContent>
+                </Popover>
+              ))}
+
+            </div>
+          </section>
+
+          {/* RESET */}
+          <Button
+            className="w-full py-4 bg-neutral-700 hover:bg-neutral-600 text-lg"
+            onClick={reset}
+          >
+            Ask Another Question
+          </Button>
+        </Card>
       )}
     </div>
   );
