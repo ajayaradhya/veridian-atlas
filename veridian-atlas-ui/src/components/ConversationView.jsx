@@ -28,38 +28,48 @@ export default function ConversationView({ data, error, reset }) {
   return (
     <div className="flex flex-col items-center w-full px-6 pt-10 relative">
       
-      {/* Error Display */}
-      {error && (
-        <p className="text-red-500 mb-6">{error}</p>
-      )}
+      {/* ERROR */}
+      {error && <p className="text-red-500 mb-6">{error}</p>}
 
-      {/* Result Card */}
+      {/* RESULT CARD */}
       {data && (
-        <Card className="w-full max-w-3xl bg-[#1a1a1a] border border-gray-800 p-8 text-gray-100 space-y-10 relative">
-          
+        <Card
+          className="
+            w-full max-w-3xl p-8 space-y-10 text-gray-100
+            bg-[#1a1a1a]/80 backdrop-blur-sm
+            border border-[#2f2f2f]
+            shadow-lg shadow-black/10
+          "
+        >
           {/* QUESTION */}
-          <section>
-            <h3 className="text-xs uppercase text-gray-500">Question</h3>
+          <section className="space-y-1">
+            <h3 className="text-xs uppercase text-gray-500 tracking-wide">Question</h3>
             <p className="text-xl font-semibold">{data.query}</p>
           </section>
 
           {/* ANSWER */}
-          <section>
-            <h3 className="text-xs uppercase text-gray-500">Answer</h3>
-            <p className="text-lg leading-relaxed">{data.answer}</p>
+          <section className="space-y-1">
+            <h3 className="text-xs uppercase text-gray-500 tracking-wide">Answer</h3>
+            <p className="text-[17px] leading-relaxed text-gray-200">
+              {data.answer}
+            </p>
           </section>
 
-          {/* CITATIONS / SOURCES */}
+          {/* CITATIONS */}
           {Array.isArray(data.citations) && data.citations.length > 0 && (
             <section className="space-y-2">
-              <h3 className="text-xs uppercase text-gray-500">Citations</h3>
+              <h3 className="text-xs uppercase text-gray-500 tracking-wide">Citations</h3>
               <div className="flex flex-wrap gap-2">
                 {data.citations.map((id) => (
                   <button
                     key={id}
                     onClick={() => loadCitation(id)}
-                    className="text-xs bg-[#1f1f1f] border border-gray-700 px-3 py-1 rounded-md
-                               hover:bg-[#242424] transition text-gray-200"
+                    className="
+                      text-xs px-3 py-1 rounded-md
+                      bg-[#1e1e1e] border border-[#333]
+                      hover:bg-[#262626] transition
+                      text-gray-200
+                    "
                   >
                     {id.split("::").slice(-1)}
                   </button>
@@ -68,23 +78,29 @@ export default function ConversationView({ data, error, reset }) {
             </section>
           )}
 
-          {/* RESET BUTTON */}
+          {/* RESET BUTTON — MATCHES CLEAR HISTORY */}
           <Button
+            variant="outline"
             onClick={reset}
-            className="w-full bg-gray-800 hover:bg-gray-700 text-gray-200"
+            className="
+              w-full mt-6
+              border-[#bababa]
+              text-gray-300
+              hover:bg-[#212121]
+              transition
+            "
           >
             Ask Another Question
           </Button>
         </Card>
       )}
 
-      {/* SIDE PANEL MOUNT */}
+      {/* CITATION PANEL */}
       <CitationPanel
         citation={activeCitation}
         loading={loadingCitation}
         onClose={() => setActiveCitation(null)}
       />
-
     </div>
   );
 }

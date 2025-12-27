@@ -142,13 +142,13 @@ export default function App() {
         )}
 
         {/* BOTTOM INPUT (POST-ANSWER) */}
-        {data && !loading && (
+        {/* {data && !loading && (
           <footer className="sticky bottom-0 w-full bg-[#171717]/90 backdrop-blur-md border-t border-[#252525] p-6 z-40">
             <div className="w-full max-w-3xl mx-auto">
               <PromptInput query={query} setQuery={setQuery} onAsk={handleAsk} />
             </div>
           </footer>
-        )}
+        )} */}
 
       </main>
     </div>

@@ -1,5 +1,6 @@
 // src/components/CitationPanel.jsx
 import { Button } from "@/components/ui/button";
+import { X } from "lucide-react";
 
 export default function CitationPanel({ citation, onClose, loading }) {
   if (!citation) return null;
@@ -7,45 +8,58 @@ export default function CitationPanel({ citation, onClose, loading }) {
   return (
     <div
       className="
-        fixed right-0 top-0 h-full w-[360px] bg-[#0f0f0f]
-        border-l border-gray-800 text-gray-200 shadow-2xl z-50 flex flex-col
+        fixed right-0 top-[50px] /* sits exactly below AppHeader */
+        h-[calc(100vh-50px)] w-[380px]
+        bg-[#0f0f0f]/95 backdrop-blur-md
+        border-l border-[#262626]
+        shadow-[0_0_25px_rgba(0,0,0,0.55)]
+        z-[60] flex flex-col
         animate-slide-in
       "
     >
-      {/* Header */}
-      <div className="p-4 flex justify-between items-center border-b border-gray-800">
-        <h2 className="text-sm font-semibold">Source Preview</h2>
+      {/* HEADER */}
+      <div className="px-4 py-3 flex justify-between items-center border-b border-[#2a2a2a]">
+        <h2 className="text-[13px] font-semibold text-gray-300 tracking-wide select-none">
+          Source Preview
+        </h2>
+
         <Button
           variant="ghost"
-          size="sm"
-          className="text-gray-400 hover:text-gray-200"
+          size="icon"
           onClick={onClose}
+          className="
+            h-7 w-7 rounded-md
+            flex items-center justify-center
+            text-gray-400 hover:text-white hover:bg-[#1f1f1f]
+            transition
+          "
+          aria-label="Close citation panel"
         >
-          Close
+          <X size={16} />
         </Button>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      {/* BODY */}
+      <div className="flex-1 overflow-y-auto px-5 py-6 space-y-6 dark-scroll">
         {loading ? (
-          <p className="italic text-gray-500">Loading...</p>
+          <p className="italic text-gray-500">Loading source…</p>
         ) : (
           <>
-            {/* Title */}
-            <p className="text-base font-semibold text-white">
+            {/* Clause Title */}
+            <p className="text-[15px] font-semibold text-gray-100 leading-tight">
               {citation.meta?.clause_title || "Untitled Clause"}
             </p>
 
-            {/* Body */}
-            <p className="whitespace-pre-wrap text-gray-300 leading-relaxed text-sm">
+            {/* Clause Content */}
+            <p className="whitespace-pre-wrap text-gray-300 leading-relaxed text-[14px]">
               {citation.content}
             </p>
 
             {/* Metadata */}
-            <div className="pt-4 mt-4 border-t border-gray-800 text-xs text-gray-500 leading-6">
-              Section: {citation.meta?.section_id || "N/A"} <br />
-              Clause: {citation.meta?.clause_id || "N/A"} <br />
-              Source ID: {citation.id}
+            <div className="pt-5 mt-4 border-t border-[#2d2d2d] text-xs text-gray-500 space-y-1">
+              <p>Section: {citation.meta?.section_id || "N/A"}</p>
+              <p>Clause: {citation.meta?.clause_id || "N/A"}</p>
+              <p>Source ID: {citation.id}</p>
             </div>
           </>
         )}
