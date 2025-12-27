@@ -6,7 +6,7 @@ Core RAG workflow with corrected JSON handling and citation separation.
 
 from pathlib import Path
 from typing import List, Dict, Any
-import json, chromadb
+import chromadb
 from chromadb.config import Settings
 
 from veridian_atlas.rag.local_llm import generate_response
