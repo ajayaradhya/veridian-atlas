@@ -7,7 +7,6 @@ import PromptInput from "./components/PromptInput";
 import ConversationView from "./components/ConversationView";
 import LoadingState from "./components/LoadingState";
 import AppHeader from "./components/AppHeader";
-import DealSelector from "./components/DealSelector";
 
 // API
 import { askRagQuestion, listDeals } from "@/api/client";
@@ -18,34 +17,31 @@ export default function App() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Multi-deal state
+  // Multi-deal
   const [deals, setDeals] = useState([]);
   const [selectedDeal, setSelectedDeal] = useState("");
 
-  // Chat history (stored per deal + query)
+  // Local history
   const [history, setHistory] = useState(() =>
     JSON.parse(localStorage.getItem("veridian-history") || "[]")
   );
 
-  // Load available deals once
+  // Load deals on app start
   useEffect(() => {
     async function loadDeals() {
       const serverDeals = await listDeals();
       setDeals(serverDeals);
-      if (serverDeals.length > 0) setSelectedDeal(serverDeals[0]); // default
+      if (serverDeals.length > 0) setSelectedDeal(serverDeals[0]);
     }
     loadDeals();
   }, []);
 
-  // Persist local history
+  // Persist history
   useEffect(() => {
     localStorage.setItem("veridian-history", JSON.stringify(history));
   }, [history]);
 
-
-  // --------------------------------------------------------------
   // MAIN ASK
-  // --------------------------------------------------------------
   const handleAsk = async () => {
     if (!query.trim() || !selectedDeal) return;
     setLoading(true);
@@ -58,11 +54,7 @@ export default function App() {
 
       setHistory((prev) => [
         ...prev,
-        {
-          deal: selectedDeal,
-          query,
-          timestamp: new Date().toISOString(),
-        },
+        { deal_id: selectedDeal, query, timestamp: new Date().toISOString() },
       ]);
     } catch {
       setError("Error: Unable to process request for this deal.");
@@ -71,58 +63,58 @@ export default function App() {
     setLoading(false);
   };
 
-  // Reset for "New Chat"
+  // NEW CHAT
   const reset = () => {
     setQuery("");
     setData(null);
     setError("");
   };
 
-
-  // --------------------------------------------------------------
-  // RENDER
-  // --------------------------------------------------------------
   return (
     <div className="flex min-h-screen bg-[#101010] text-gray-200 font-brand">
 
-      {/* SIDEBAR */}
+      {/* LEFT SIDEBAR */}
       <Sidebar
         history={history}
         setHistory={setHistory}
         onSelect={({ deal, query }) => {
-          setSelectedDeal(deal);
-          setQuery(query);
+          if (deal) setSelectedDeal(deal);
+          if (query) setQuery(query);
         }}
         onNewChat={reset}
       />
 
+
       {/* MAIN PANEL */}
       <main className="flex-1 flex flex-col items-center overflow-y-auto relative">
 
-        {/* GLOBAL HEADER */}
-        <AppHeader
-          selectedDeal={selectedDeal}
-          setSelectedDeal={setSelectedDeal}
-        />
+        <AppHeader activeDeal={selectedDeal} />
 
-        {/* DEAL SELECTOR (TOP AREA) */}
-        <div className="w-full max-w-3xl mx-auto mt-6 mb-6">
-          <DealSelector
-            deals={deals}
-            selectedDeal={selectedDeal}
-            setSelectedDeal={setSelectedDeal}
-          />
-        </div>
-
-        {/* LANDING */}
+        {/* LANDING VIEW */}
         {!data && !loading && (
           <div className="flex flex-col items-center text-center pt-24 pb-10 max-w-3xl relative z-10">
+
             <h1 className="text-6xl font-bold mb-3 text-transparent bg-clip-text bg-white/75">
               Veridian Atlas
             </h1>
+
             <p className="text-sm text-gray-300 mb-10">
-              Select a deal and ask a question — granular citations guaranteed.
+              Select a deal and ask a question — accurate retrieval, guaranteed.
             </p>
+
+            {/* NEW: DEAL SELECTOR (moved here) */}
+            <select
+              value={selectedDeal}
+              onChange={(e) => setSelectedDeal(e.target.value)}
+              className="
+                mb-6 bg-[#1a1a1a] border border-[#2d2d2d] text-gray-200
+                px-3 py-2 rounded-xl text-sm focus:border-[#4a4a4a]
+              "
+            >
+              {deals.map((deal) => (
+                <option key={deal} value={deal}>{deal}</option>
+              ))}
+            </select>
 
             <PromptInput
               query={query}
@@ -133,19 +125,18 @@ export default function App() {
           </div>
         )}
 
-        {/* LOADING */}
         {loading && (
           <div className="relative z-10">
             <LoadingState />
           </div>
         )}
 
-        {/* ANSWER VIEW */}
         {!loading && data && (
           <div className="w-full flex justify-center relative z-10 mt-10">
             <ConversationView data={data} error={error} reset={reset} />
           </div>
         )}
+
       </main>
     </div>
   );
