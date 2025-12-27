@@ -1,27 +1,32 @@
 """
 local_llm.py
 ------------
-Local Qwen wrapper for 0.5B instruct model.
-Optimized for GTX 1060 or CPU fallback.
+Local Qwen wrapper for 0.5B instruct model optimized for GTX 1060 or CPU.
+Ensures deterministic output with correct JSON extraction.
 """
 
-import torch, re
+import torch, re, json
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 _MODEL = None
 _TOKENIZER = None
+MODEL_NAME = "Qwen/Qwen2.5-0.5B-Instruct"
 
-MODEL_NAME = "Qwen/Qwen2.5-0.5B-Instruct"  # <-- Use 0.5B model
 
 def _extract_json(text: str):
+    """
+    Extract first JSON object block safely.
+    If no valid JSON is found, return raw text.
+    """
     match = re.search(r"\{(?:[^{}]|(?:\{[^{}]*\}))*\}", text, re.DOTALL)
     return match.group(0).strip() if match else text.strip()
 
 
 def get_qwen():
+    """
+    Singleton load – prevents repeatedly reloading the model.
+    """
     global _MODEL, _TOKENIZER
-
-    # Singleton – avoids reloading model repeatedly
     if _MODEL is not None and _TOKENIZER is not None:
         return _MODEL, _TOKENIZER
 
@@ -32,7 +37,8 @@ def get_qwen():
     print(f"[LLM] Loading Qwen-0.5B → {device}")
 
     _TOKENIZER = AutoTokenizer.from_pretrained(
-        MODEL_NAME, trust_remote_code=True
+        MODEL_NAME,
+        trust_remote_code=True
     )
 
     _MODEL = AutoModelForCausalLM.from_pretrained(
@@ -45,12 +51,16 @@ def get_qwen():
         print(f"[GPU READY] {torch.cuda.get_device_name(0)}")
         print(f"[VRAM USED] {torch.cuda.memory_allocated()/1024**2:.2f} MB\n")
     else:
-        print("[CPU MODE] Running slower, but stable.\n")
+        print("[CPU MODE] Running slower but stable.\n")
 
     return _MODEL, _TOKENIZER
 
 
-def generate_response(prompt: str, max_tokens: int = 256) -> str:
+def generate_response(prompt: str, max_tokens: int = 256) -> dict:
+    """
+    Deterministic generation – no sampling noise.
+    Returns parsed JSON or a fallback dict.
+    """
     model, tokenizer = get_qwen()
     device = next(model.parameters()).device
 
@@ -59,15 +69,28 @@ def generate_response(prompt: str, max_tokens: int = 256) -> str:
     output = model.generate(
         **inputs,
         max_new_tokens=max_tokens,
-        temperature=0.0,
-        do_sample=False,
+        do_sample=False,         # Ensures reproducible output
+        temperature=None,
+        top_k=None,
+        top_p=None,
         pad_token_id=tokenizer.eos_token_id,
-        repetition_penalty=1.1,
+        repetition_penalty=1.05,
         eos_token_id=tokenizer.eos_token_id,
     )
 
     text = tokenizer.decode(output[0], skip_special_tokens=True)
+
+    # Remove prompt echo if the model repeats input
     if prompt in text:
         text = text.replace(prompt, "").strip()
-    return _extract_json(text)
 
+    extracted = _extract_json(text)
+
+    # Try to parse JSON safely
+    try:
+        return json.loads(extracted)
+    except json.JSONDecodeError:
+        return {
+            "answer": "The model did not return valid JSON.",
+            "citations": []
+        }

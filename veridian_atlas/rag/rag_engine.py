@@ -1,66 +1,36 @@
 """
 rag_engine.py
 -------------
-Core Retrieval-Augmented Generation engine for Veridian Atlas.
-
-Responsibilities:
-- Connect to Chroma and retrieve relevant chunks
-- Build context-aware prompt with chunk IDs for citation
-- Forward prompt to local Qwen-0.5B for JSON answer
-- Return UI/Backend friendly structure
+Core RAG workflow with corrected JSON handling and citation separation.
 """
 
 from pathlib import Path
 from typing import List, Dict, Any
-
-import chromadb
+import json, chromadb
 from chromadb.config import Settings
 
 from veridian_atlas.rag.local_llm import generate_response
-
-
-# ----------------------------------------
-# CONFIG
-# ----------------------------------------
 
 DEFAULT_DB_PATH = Path("veridian_atlas/data/indexes/chroma_db")
 COLLECTION_NAME = "veridian_atlas"
 TOP_K = 5
 
 
-# ----------------------------------------
-# CHROMA CONNECTION
-# ----------------------------------------
-
 def get_chroma_collection(db_path: Path = DEFAULT_DB_PATH):
-    """
-    Connect to Chroma and load the target collection.
-    Raises a clear error if the index doesn't exist.
-    """
     client = chromadb.PersistentClient(
         path=str(db_path),
         settings=Settings(anonymized_telemetry=False)
     )
-
     try:
         return client.get_collection(COLLECTION_NAME)
     except Exception as err:
         raise RuntimeError(
-            f"[RAG ERROR] No Chroma collection named '{COLLECTION_NAME}'.\n"
-            f"Run embeddings first → start_embeddings.py"
+            f"[RAG ERROR] No Chroma collection named '{COLLECTION_NAME}'. "
+            "Run embedding setup: python -m veridian_atlas.kickoff.start_embeddings"
         ) from err
 
 
-# ----------------------------------------
-# RETRIEVAL LAYER
-# ----------------------------------------
-
 def retrieve_context(query: str, top_k: int = TOP_K) -> List[Dict[str, Any]]:
-    """
-    Run similarity search over vector DB.
-    Always returns a list of context objects:
-        { chunk_id, content, section, clause, distance }
-    """
     collection = get_chroma_collection()
 
     results = collection.query(
@@ -75,40 +45,24 @@ def retrieve_context(query: str, top_k: int = TOP_K) -> List[Dict[str, Any]]:
 
     contexts = []
     for doc, meta, dist in zip(docs, metas, dists):
-        chunk_id = (
-            meta.get("chunk_id")
-            or meta.get("id")
-            or meta.get("section_id")
-            or "UNKNOWN_CHUNK"
-        )
-
         contexts.append({
-            "chunk_id": chunk_id,
-            "content": doc,
+            "chunk_id": meta.get("chunk_id", "UNKNOWN_CHUNK"),
+            "content": doc.replace("\n", " ").strip(),
             "section": meta.get("section_id"),
             "clause": meta.get("clause_id"),
             "distance": float(dist),
         })
-
     return contexts
 
 
-# ----------------------------------------
-# PROMPT CONSTRUCTION
-# ----------------------------------------
-
 def build_rag_prompt(query: str, contexts: List[dict]) -> str:
-    blocks = []
-    for c in contexts:
-        clean_text = c["content"].replace("\n", " ").strip()
-        blocks.append(f"[{c['chunk_id']}] {clean_text}")
-
+    blocks = [f"[{c['chunk_id']}] {c['content']}" for c in contexts]
     context_text = "\n".join(blocks)
 
-    prompt = f"""
+    return f"""
 You are a financial contract analysis assistant.
 
-Use ONLY the context provided. If the answer is not present, respond exactly with:
+Use ONLY the context provided. If the answer is not present, respond exactly:
 "The provided text does not contain enough information."
 
 QUESTION:
@@ -119,61 +73,42 @@ CONTEXT:
 
 RESPONSE RULES:
 - Respond ONLY in valid JSON.
-- "answer" must be a short sentence.
-- "citations" must reference only chunk IDs from the context.
-- No prose, no markdown, no extra text — JSON only.
+- "answer" must be short and factual.
+- "citations" must reference chunk IDs exactly as shown.
 
 OUTPUT FORMAT:
 {{
   "answer": "...",
-  "citations": ["chunk_id_1", "chunk_id_2"]
+  "citations": ["chunk_id"]
 }}
 """.strip()
 
-    return prompt
-
-
-
-# ----------------------------------------
-# MAIN QUERY PIPELINE
-# ----------------------------------------
 
 def answer_query(query: str, top_k: int = TOP_K) -> Dict[str, Any]:
-    """
-    Full RAG pipeline:
-        1. retrieve context chunks
-        2. build prompt
-        3. pass to model
-        4. return citation-linked JSON
-    """
-    contexts = retrieve_context(query, top_k=top_k)
+    contexts = retrieve_context(query, top_k)
 
-    # no retrieval results
     if not contexts:
         return {
             "query": query,
             "answer": "The provided text does not contain enough information.",
-            "citations": [],
+            "citations_model": [],
+            "citations_retrieved": [],
             "sources": []
         }
 
     prompt = build_rag_prompt(query, contexts)
-    llm_response = generate_response(prompt)
+    model_json = generate_response(prompt)
 
-    # final payload for UI or API response
     return {
         "query": query,
-        "answer": llm_response,
-        "citations": [c["chunk_id"] for c in contexts],
+        "answer": model_json.get("answer"),
+        "citations": model_json.get("citations", []),
+        "citations_model": model_json.get("citations", []),        # from model
+        "citations_retrieved": [c["chunk_id"] for c in contexts],  # from vector DB
         "sources": contexts
     }
 
 
-# ----------------------------------------
-# Manual Test
-# ----------------------------------------
-
 if __name__ == "__main__":
     test_question = "What is the interest rate for the Revolving Credit Facility?"
-    result = answer_query(test_question)
-    print(result)
+    print(answer_query(test_question))

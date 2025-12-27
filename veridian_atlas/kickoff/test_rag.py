@@ -37,7 +37,7 @@ def run_tests():
             continue
 
         answer_text = result.get("answer", "").strip()
-        citations = result.get("citations", [])
+        citations = result.get("citations") or result.get("citations_model", [])
 
         print("\nANSWER:")
         print(answer_text)
