@@ -3,7 +3,7 @@ chunker.py
 ----------
 Transforms parsed section/clause JSON into retrieval-ready chunks.
 
-Input  : section.json (from text_loader/router)
+Input  : sections.json (from text_loader/router)
 Output : chunks.jsonl (atomic retrieval units)
 
 Changes Added:
@@ -118,10 +118,10 @@ def build_chunks_from_json(parsed_json: dict, deal_name: str) -> list[dict]:
 
 def chunk_from_file(section_json_path: Path, deal_name: str) -> list[dict]:
     if not section_json_path.exists():
-        raise FileNotFoundError(f"[ERROR] section.json not found at: {section_json_path}")
+        raise FileNotFoundError(f"[ERROR] sections.json not found at: {section_json_path}")
 
     raw = json.loads(section_json_path.read_text(encoding="utf-8"))
-    logger.info(f"[LOAD] Loaded section.json with {len(raw)} top-level document entries.")
+    logger.info(f"[LOAD] Loaded sections.json with {len(raw)} top-level document entries.")
 
     return build_chunks_from_json(raw, deal_name)
 

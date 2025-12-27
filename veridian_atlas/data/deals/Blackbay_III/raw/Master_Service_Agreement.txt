@@ -1,0 +1,22 @@
+SECTION 1 – Scope of Engagement
+Blackbay III Holdings ("Client") engages Veridian Atlas Partners ("Service Provider") to perform data infrastructure, risk-model deployment, and analytics support across Client’s portfolio companies. Services include: (i) asset-level data ingestion, (ii) modeling pipeline deployment, and (iii) reporting integration into existing finance systems.
+
+1.1 Responsibilities (Client)
+Client shall provide system access credentials, environment endpoints, and non-public datasets required for service delivery.
+
+1.2 Responsibilities (Service Provider)
+Service Provider shall deploy infrastructure components, perform testing, and deliver production integration within the agreed commercial timeframe.
+
+SECTION 2 – Term & Termination
+2.1 Term
+This Agreement remains effective for twenty-four (24) months from the Effective Date unless terminated earlier.
+
+2.2 Termination for Cause
+Either Party may terminate with thirty (30) days’ written notice if the counterparty materially breaches obligations.
+
+SECTION 3 – Reporting & Audit
+3.1 Performance Reporting
+Monthly performance reports shall be provided including uptime %, data latency KPIs, exception logs, and SLA breaches.
+
+3.3 Audit Rights
+Client may request a compliance audit not more than twice annually.

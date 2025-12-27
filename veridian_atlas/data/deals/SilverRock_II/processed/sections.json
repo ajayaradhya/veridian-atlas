@@ -1,0 +1,170 @@
+{
+  "Definitions_and_Glossary": [
+    {
+      "deal_name": "SilverRock_II",
+      "document_id": "Definitions_and_Glossary",
+      "section_id": "SECTION 1",
+      "section_title": "Defined Terms (General)",
+      "section_text": "\"Asset Pool\" refers to the aggregated set of real estate or credit assets pledged under this Agreement.\n\n\"Operating Covenant\"\nMinimum DSCR of 1.20x must be maintained across the pooled asset cash flows.\n\n\"Strategic Event\"\nAny sale, merger, recapitalization, asset disposal (> 8% NAV), or restructuring requiring consent.",
+      "clauses": [
+        {
+          "clause_id": "1.1",
+          "clause_title": "\"Operating Covenant\"",
+          "clause_text": "\"Operating Covenant\"\nMinimum DSCR of 1.20x must be maintained across the pooled asset cash flows."
+        },
+        {
+          "clause_id": "1.2",
+          "clause_title": "\"Strategic Event\"",
+          "clause_text": "\"Strategic Event\"\nAny sale, merger, recapitalization, asset disposal (> 8% NAV), or restructuring requiring consent."
+        }
+      ],
+      "location": {
+        "start": 35,
+        "end": 366
+      },
+      "source_meta": {
+        "file_type": "txt",
+        "source_format": "txt",
+        "file_hash": "d223135b94583753eacdd3b5cab28bd1a07508c6e4ab5b53181cf9a9e1e4d550",
+        "parser_version": "v2-multideal"
+      }
+    },
+    {
+      "deal_name": "SilverRock_II",
+      "document_id": "Definitions_and_Glossary",
+      "section_id": "SECTION 2",
+      "section_title": "Material Terms",
+      "section_text": "\"Eligible Collateral\"\nAssets meeting: (i) audit-verified book value, (ii) enforceable ownership rights, (iii) liquidation horizon < 14 months.\n\n\"Restricted Party\"\nEntities under sanction lists, AML-flagged entities, or beneficial owners obscured through undisclosed nominee arrangements.",
+      "clauses": [
+        {
+          "clause_id": "2.3",
+          "clause_title": "\"Eligible Collateral\"",
+          "clause_text": "\"Eligible Collateral\"\nAssets meeting: (i) audit-verified book value, (ii) enforceable ownership rights, (iii) liquidation horizon < 14 months."
+        },
+        {
+          "clause_id": "2.4",
+          "clause_title": "\"Restricted Party\"",
+          "clause_text": "\"Restricted Party\"\nEntities under sanction lists, AML-flagged entities, or beneficial owners obscured through undisclosed nominee arrangements."
+        }
+      ],
+      "location": {
+        "start": 392,
+        "end": 690
+      },
+      "source_meta": {
+        "file_type": "txt",
+        "source_format": "txt",
+        "file_hash": "d223135b94583753eacdd3b5cab28bd1a07508c6e4ab5b53181cf9a9e1e4d550",
+        "parser_version": "v2-multideal"
+      }
+    },
+    {
+      "deal_name": "SilverRock_II",
+      "document_id": "Definitions_and_Glossary",
+      "section_id": "SECTION 3",
+      "section_title": "Measurement Standards",
+      "section_text": "Valuation Method\nNAV shall be measured quarterly using discounted future cash flows with a 10.5% hurdle.",
+      "clauses": [
+        {
+          "clause_id": "3.1",
+          "clause_title": "Valuation Method",
+          "clause_text": "Valuation Method\nNAV shall be measured quarterly using discounted future cash flows with a 10.5% hurdle."
+        }
+      ],
+      "location": {
+        "start": 723,
+        "end": 832
+      },
+      "source_meta": {
+        "file_type": "txt",
+        "source_format": "txt",
+        "file_hash": "d223135b94583753eacdd3b5cab28bd1a07508c6e4ab5b53181cf9a9e1e4d550",
+        "parser_version": "v2-multideal"
+      }
+    }
+  ],
+  "Security_Package_Schedule": [
+    {
+      "deal_name": "SilverRock_II",
+      "document_id": "Security_Package_Schedule",
+      "section_id": "SECTION 1",
+      "section_title": "Collateral Components",
+      "section_text": "Primary Collateral\nMortgage charge over revenue-producing assets located in Bengaluru, Pune, and Hyderabad.\n\nSecondary Collateral\nPledge of receivables, reserve accounts, and escrow-controlled operating accounts.",
+      "clauses": [
+        {
+          "clause_id": "1.1",
+          "clause_title": "Primary Collateral",
+          "clause_text": "Primary Collateral\nMortgage charge over revenue-producing assets located in Bengaluru, Pune, and Hyderabad."
+        },
+        {
+          "clause_id": "1.2",
+          "clause_title": "Secondary Collateral",
+          "clause_text": "Secondary Collateral\nPledge of receivables, reserve accounts, and escrow-controlled operating accounts."
+        }
+      ],
+      "location": {
+        "start": 33,
+        "end": 256
+      },
+      "source_meta": {
+        "file_type": "txt",
+        "source_format": "txt",
+        "file_hash": "7fa743b1834f710bd8fc88717539b2edc0840db85b44afab80cc9bab48849939",
+        "parser_version": "v2-multideal"
+      }
+    },
+    {
+      "deal_name": "SilverRock_II",
+      "document_id": "Security_Package_Schedule",
+      "section_id": "SECTION 2",
+      "section_title": "Enforcement Framework",
+      "section_text": "Trigger Events\nFailure to satisfy covenant tests for 2 consecutive quarters constitutes an Enforcement Trigger.\n\nEnforcement Mechanics\nUpon trigger: cash sweeps activated, disbursement controls initiated, asset sales prioritized by liquidity yield.",
+      "clauses": [
+        {
+          "clause_id": "2.1",
+          "clause_title": "Trigger Events",
+          "clause_text": "Trigger Events\nFailure to satisfy covenant tests for 2 consecutive quarters constitutes an Enforcement Trigger."
+        },
+        {
+          "clause_id": "2.3",
+          "clause_title": "Enforcement Mechanics",
+          "clause_text": "Enforcement Mechanics\nUpon trigger: cash sweeps activated, disbursement controls initiated, asset sales prioritized by liquidity yield."
+        }
+      ],
+      "location": {
+        "start": 289,
+        "end": 548
+      },
+      "source_meta": {
+        "file_type": "txt",
+        "source_format": "txt",
+        "file_hash": "7fa743b1834f710bd8fc88717539b2edc0840db85b44afab80cc9bab48849939",
+        "parser_version": "v2-multideal"
+      }
+    },
+    {
+      "deal_name": "SilverRock_II",
+      "document_id": "Security_Package_Schedule",
+      "section_id": "SECTION 3",
+      "section_title": "Monitoring & Controls",
+      "section_text": "Quarterly Reporting\nReports include asset cashflow summaries, impairment tests, LTV updates, and asset-level breakage reports.",
+      "clauses": [
+        {
+          "clause_id": "3.2",
+          "clause_title": "Quarterly Reporting",
+          "clause_text": "Quarterly Reporting\nReports include asset cashflow summaries, impairment tests, LTV updates, and asset-level breakage reports."
+        }
+      ],
+      "location": {
+        "start": 581,
+        "end": 712
+      },
+      "source_meta": {
+        "file_type": "txt",
+        "source_format": "txt",
+        "file_hash": "7fa743b1834f710bd8fc88717539b2edc0840db85b44afab80cc9bab48849939",
+        "parser_version": "v2-multideal"
+      }
+    }
+  ]
+}

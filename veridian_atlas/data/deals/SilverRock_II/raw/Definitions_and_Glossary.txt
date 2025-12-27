@@ -1,0 +1,19 @@
+SECTION 1 – Defined Terms (General)
+"Asset Pool" refers to the aggregated set of real estate or credit assets pledged under this Agreement.
+
+1.1 "Operating Covenant"
+Minimum DSCR of 1.20x must be maintained across the pooled asset cash flows.
+
+1.2 "Strategic Event"
+Any sale, merger, recapitalization, asset disposal (> 8% NAV), or restructuring requiring consent.
+
+SECTION 2 – Material Terms
+2.3 "Eligible Collateral"
+Assets meeting: (i) audit-verified book value, (ii) enforceable ownership rights, (iii) liquidation horizon < 14 months.
+
+2.4 "Restricted Party"
+Entities under sanction lists, AML-flagged entities, or beneficial owners obscured through undisclosed nominee arrangements.
+
+SECTION 3 – Measurement Standards
+3.1 Valuation Method
+NAV shall be measured quarterly using discounted future cash flows with a 10.5% hurdle.

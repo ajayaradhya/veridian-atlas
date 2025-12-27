@@ -1,0 +1,23 @@
+SECTION 1 – Fee Structure Overview
+Fees are structured as a hybrid subscription + usage variable model. All fees are billed in INR.
+
+1.1 Base Subscription
+Monthly Platform Access Fee: INR 5,50,000.
+
+1.2 Variable Usage Fees
+Compute Execution Charges (per pipeline run): INR 4,500.
+Storage Allocation (per TB/month): INR 11,000.
+
+SECTION 2 – Invoicing & Payment
+2.1 Payment Terms
+Payment due within fifteen (15) calendar days of invoice date. Late payments accrue interest @ 1.5% per month.
+
+2.2 Currency & Taxes
+All taxes, GST obligations, and withholding remittances are the responsibility of the Client.
+
+SECTION 3 – Penalties & Adjustments
+3.1 Service Downtime
+If availability falls below 99.3% uptime per calendar month, a 12% service credit shall be issued.
+
+3.4 Termination Balance
+Outstanding fees become immediately payable upon termination.

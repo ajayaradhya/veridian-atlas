@@ -1,0 +1,17 @@
+SECTION 1 – Collateral Components
+1.1 Primary Collateral
+Mortgage charge over revenue-producing assets located in Bengaluru, Pune, and Hyderabad.
+
+1.2 Secondary Collateral
+Pledge of receivables, reserve accounts, and escrow-controlled operating accounts.
+
+SECTION 2 – Enforcement Framework
+2.1 Trigger Events
+Failure to satisfy covenant tests for 2 consecutive quarters constitutes an Enforcement Trigger.
+
+2.3 Enforcement Mechanics
+Upon trigger: cash sweeps activated, disbursement controls initiated, asset sales prioritized by liquidity yield.
+
+SECTION 3 – Monitoring & Controls
+3.2 Quarterly Reporting
+Reports include asset cashflow summaries, impairment tests, LTV updates, and asset-level breakage reports.

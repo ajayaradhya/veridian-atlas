@@ -1,0 +1,22 @@
+SECTION 1 – Required Before First Draw
+1.1 Documentation Delivery
+Executed agreements, KYC packages, AML confirmations, and board resolutions required.
+
+1.2 Legal Opinions
+External counsel must issue enforceability opinions on cross-border treatment of pledged assets.
+
+SECTION 2 – Financial Conditions
+2.3 Covenant Certification
+Minimum DSCR: 1.25x
+Minimum Interest Coverage Ratio (ICR): 2.10x
+Max Leverage: 3.8x Net Debt / EBITDA
+
+2.4 Portfolio Concentration Limits
+Single obligor exposure may not exceed 21% of aggregate facility value.
+
+SECTION 3 – Operational Conditions
+3.1 System Integration
+API linkage between Axiom Capital treasury systems and Veridian Atlas reporting rails must be tested before drawdown.
+
+3.4 Data Room Requirements
+Virtual data room must remain accessible to auditors for 36 months post-drawdown.

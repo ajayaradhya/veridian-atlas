@@ -1,99 +1,142 @@
 """
 router.py
 ----------
-Central ingestion router for Veridian Atlas.
-Determines which loader to call based on file extension.
+Multi-deal ingestion router for Veridian Atlas.
 
-Pipeline:
-    (file path) -> detect type -> call loader -> return metadata list
+Directory Standard:
+veridian_atlas.data.deals.{deal_name}.raw/*.txt
+veridian_atlas.data.deals.{deal_name}.processed/sections.json
+
+Features:
+- Multi-document routing
+- SHA256 hashing for version tracking
+- Overwrites processed/sections.json on each ingest
+- Loader map is future-proof for PDF/DOCX
 """
 
 from pathlib import Path
-from veridian_atlas.utils.logger import get_logger
+from typing import Dict, List, Optional, Callable
+import hashlib
+import json
 
+from veridian_atlas.utils.logger import get_logger
 from veridian_atlas.ingestion.loaders.text_loader import handle_text_loading
 
 logger = get_logger(__name__)
 
+# ---------------------------------------------------------
+# Loader registry (extendable)
+# ---------------------------------------------------------
+LOADER_MAP: Dict[str, Callable] = {
+    ".txt": handle_text_loading,
+    # ".pdf": handle_pdf_loading,
+    # ".docx": handle_docx_loading,
+}
 
-# -----------------------------
-# ROUTER FUNCTION
-# -----------------------------
-def route_file(file_path: Path, deal_name: str) -> list[dict]:
-    """
-    Route file to the appropriate loader based on its extension.
+# Base deal path (new folder standard)
+BASE_DEALS_PATH = Path(__file__).resolve().parent.parent / "data" / "deals"
 
-    Parameters
-    ----------
-    file_path : Path
-        Full path to the document (raw folder)
-    deal_name : str
-        The deal identifier (e.g., "Blackbay_III")
 
-    Returns
-    -------
-    list[dict]
-        Parsed metadata (sections, clauses, etc.)
-    """
+# ---------------------------------------------------------
+# SHA-256 hashing for file version detection
+# ---------------------------------------------------------
+def compute_file_hash(file_path: Path) -> str:
+    """Computes sha256 checksum for version identity and cache validation."""
+    sha = hashlib.sha256()
+    with file_path.open("rb") as f:
+        for chunk in iter(lambda: f.read(8192), b""):
+            sha.update(chunk)
+    return sha.hexdigest()
 
+
+# ---------------------------------------------------------
+# Route a single file
+# ---------------------------------------------------------
+def route_file(file_path: Path, deal_name: str, doc_id: Optional[str] = None) -> List[dict]:
     if not file_path.exists():
-        logger.error(f"File not found: {file_path}")
+        logger.error(f"[ROUTER] Missing file → {file_path}")
         return []
 
     ext = file_path.suffix.lower()
+    doc_id = doc_id or file_path.stem
 
-    logger.info(f"Routing file: {file_path.name} (ext: {ext})")
+    logger.info(f"[ROUTER] Processing → {file_path.name} | Deal={deal_name} | Doc={doc_id}")
 
-    # -------------------
-    # TEXT FILES
-    # -------------------
-    if ext == ".txt":
-        logger.info("→ TXT detected. Using text_loader.")
-        return handle_text_loading(deal_name, file_path)
+    if ext not in LOADER_MAP:
+        logger.error(f"[ROUTER] Unsupported file type '{ext}' | File={file_path.name}")
+        raise ValueError(f"Unsupported extension: {ext}")
 
-    # -------------------
-    # DOCX FILES
-    # -------------------
-    if ext == ".docx":
-        logger.warning("DOCX ingestion not implemented yet.")
-        raise NotImplementedError("DOCX support will be added in ingestion/docs_loader.py")
+    file_hash = compute_file_hash(file_path)
 
-    # -------------------
-    # PDF FILES 
-    # -------------------
-    if ext == ".pdf":
-        logger.warning("PDF ingestion not implemented yet.")
-        raise NotImplementedError("PDF support will be added in ingestion/pdf_loader.py")
-
-    # -------------------
-    # UNKNOWN FORMAT
-    # -------------------
-    logger.error(f"Unsupported file type: '{ext}'")
-    raise ValueError(f"Unsupported extension: {ext}")
+    try:
+        loader = LOADER_MAP[ext]
+        return loader(
+            deal_name=deal_name,
+            doc_id=doc_id,
+            file_path=file_path,
+            file_hash=file_hash
+        )
+    except Exception as exc:
+        logger.exception(f"[ROUTER] Loader crash → {file_path.name}: {exc}")
+        return []
 
 
-# -----------------------------
-# BATCH ROUTER (optional helper)
-# -----------------------------
-def route_folder(deal_name: str, folder_path: Path) -> dict[str, list[dict]]:
-    """
-    Iterate through a folder and ingest all supported documents.
-    Returns a mapping of filename -> parsed metadata
-    """
-    logger.info(f"Scanning folder for raw docs: {folder_path}")
+# ---------------------------------------------------------
+# Deal-level ingestion
+# ---------------------------------------------------------
+def ingest_deal(deal_name: str) -> Dict[str, List[dict]]:
+    raw_path = BASE_DEALS_PATH / deal_name / "raw"
+    processed_path = BASE_DEALS_PATH / deal_name / "processed"
+    output_file = processed_path / "sections.json"
 
-    if not folder_path.exists():
-        logger.error(f"Folder does not exist: {folder_path}")
+    logger.info(f"\n==============================")
+    logger.info(f"[DEAL] Ingesting {deal_name}")
+    logger.info(f"==============================")
+    logger.info(f"[DEAL] RAW: {raw_path}")
+
+    if not raw_path.exists():
+        logger.error(f"[DEAL] Raw directory missing → {raw_path}")
         return {}
 
     results = {}
-
-    for file in folder_path.iterdir():
+    for file in raw_path.iterdir():
         if file.is_file():
-            try:
-                results[file.name] = route_file(file, deal_name)
-            except Exception as exc:
-                logger.exception(f"Failed to process: {file.name} | Error: {exc}")
-                results[file.name] = None  # Track failures rather than hiding them
+            doc_id = file.stem
+            results[doc_id] = route_file(file, deal_name, doc_id)
+
+    # Ensure processed folder
+    processed_path.mkdir(parents=True, exist_ok=True)
+
+    # Write output JSON
+    try:
+        with open(output_file, "w", encoding="utf-8") as f:
+            json.dump(results, f, indent=2, ensure_ascii=False)
+        logger.info(f"[DEAL] ✔ Saved → {output_file}")
+    except Exception as exc:
+        logger.exception(f"[DEAL] FAILED writing output: {exc}")
 
     return results
+
+
+# ---------------------------------------------------------
+# Global multi-deal ingest
+# ---------------------------------------------------------
+def ingest_all_deals() -> Dict[str, Dict[str, List[dict]]]:
+    logger.info("[GLOBAL] Starting multi-deal ingestion...")
+
+    if not BASE_DEALS_PATH.exists():
+        logger.error(f"[GLOBAL] Deals directory missing: {BASE_DEALS_PATH}")
+        return {}
+
+    deals = {}
+    for deal_folder in BASE_DEALS_PATH.iterdir():
+        if deal_folder.is_dir():
+            deal_name = deal_folder.name
+            deals[deal_name] = ingest_deal(deal_name)
+
+    logger.info(f"[GLOBAL] Completed ingestion for {len(deals)} deals.")
+    return deals
+
+
+def supported_extensions() -> list[str]:
+    return list(LOADER_MAP.keys())

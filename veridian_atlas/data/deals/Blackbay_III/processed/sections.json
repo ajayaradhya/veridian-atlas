@@ -1,0 +1,180 @@
+{
+  "Master_Service_Agreement": [
+    {
+      "deal_name": "Blackbay_III",
+      "document_id": "Master_Service_Agreement",
+      "section_id": "SECTION 1",
+      "section_title": "Scope of Engagement",
+      "section_text": "Blackbay III Holdings (\"Client\") engages Veridian Atlas Partners (\"Service Provider\") to perform data infrastructure, risk-model deployment, and analytics support across Client’s portfolio companies. Services include: (i) asset-level data ingestion, (ii) modeling pipeline deployment, and (iii) reporting integration into existing finance systems.\n\nResponsibilities (Client)\nClient shall provide system access credentials, environment endpoints, and non-public datasets required for service delivery.\n\nResponsibilities (Service Provider)\nService Provider shall deploy infrastructure components, perform testing, and deliver production integration within the agreed commercial timeframe.",
+      "clauses": [
+        {
+          "clause_id": "1.1",
+          "clause_title": "Responsibilities (Client)",
+          "clause_text": "Responsibilities (Client)\nClient shall provide system access credentials, environment endpoints, and non-public datasets required for service delivery."
+        },
+        {
+          "clause_id": "1.2",
+          "clause_title": "Responsibilities (Service Provider)",
+          "clause_text": "Responsibilities (Service Provider)\nService Provider shall deploy infrastructure components, perform testing, and deliver production integration within the agreed commercial timeframe."
+        }
+      ],
+      "location": {
+        "start": 31,
+        "end": 728
+      },
+      "source_meta": {
+        "file_type": "txt",
+        "source_format": "txt",
+        "file_hash": "562a34c61cdb76d9d21eb9ac20735ce563991034c85d48fbec89c669f15d06f5",
+        "parser_version": "v2-multideal"
+      }
+    },
+    {
+      "deal_name": "Blackbay_III",
+      "document_id": "Master_Service_Agreement",
+      "section_id": "SECTION 2",
+      "section_title": "Term & Termination",
+      "section_text": "Term\nThis Agreement remains effective for twenty-four (24) months from the Effective Date unless terminated earlier.\n\nTermination for Cause\nEither Party may terminate with thirty (30) days’ written notice if the counterparty materially breaches obligations.",
+      "clauses": [
+        {
+          "clause_id": "2.1",
+          "clause_title": "Term",
+          "clause_text": "Term\nThis Agreement remains effective for twenty-four (24) months from the Effective Date unless terminated earlier."
+        },
+        {
+          "clause_id": "2.2",
+          "clause_title": "Termination for Cause",
+          "clause_text": "Termination for Cause\nEither Party may terminate with thirty (30) days’ written notice if the counterparty materially breaches obligations."
+        }
+      ],
+      "location": {
+        "start": 758,
+        "end": 1026
+      },
+      "source_meta": {
+        "file_type": "txt",
+        "source_format": "txt",
+        "file_hash": "562a34c61cdb76d9d21eb9ac20735ce563991034c85d48fbec89c669f15d06f5",
+        "parser_version": "v2-multideal"
+      }
+    },
+    {
+      "deal_name": "Blackbay_III",
+      "document_id": "Master_Service_Agreement",
+      "section_id": "SECTION 3",
+      "section_title": "Reporting & Audit",
+      "section_text": "Performance Reporting\nMonthly performance reports shall be provided including uptime %, data latency KPIs, exception logs, and SLA breaches.\n\nAudit Rights\nClient may request a compliance audit not more than twice annually.",
+      "clauses": [
+        {
+          "clause_id": "3.1",
+          "clause_title": "Performance Reporting",
+          "clause_text": "Performance Reporting\nMonthly performance reports shall be provided including uptime %, data latency KPIs, exception logs, and SLA breaches."
+        },
+        {
+          "clause_id": "3.3",
+          "clause_title": "Audit Rights",
+          "clause_text": "Audit Rights\nClient may request a compliance audit not more than twice annually."
+        }
+      ],
+      "location": {
+        "start": 1055,
+        "end": 1286
+      },
+      "source_meta": {
+        "file_type": "txt",
+        "source_format": "txt",
+        "file_hash": "562a34c61cdb76d9d21eb9ac20735ce563991034c85d48fbec89c669f15d06f5",
+        "parser_version": "v2-multideal"
+      }
+    }
+  ],
+  "Payment_Terms_and_Fee_Schedule": [
+    {
+      "deal_name": "Blackbay_III",
+      "document_id": "Payment_Terms_and_Fee_Schedule",
+      "section_id": "SECTION 1",
+      "section_title": "Fee Structure Overview",
+      "section_text": "Fees are structured as a hybrid subscription + usage variable model. All fees are billed in INR.\n\nBase Subscription\nMonthly Platform Access Fee: INR 5,50,000.\n\nVariable Usage Fees\nCompute Execution Charges (per pipeline run): INR 4,500.\nStorage Allocation (per TB/month): INR 11,000.",
+      "clauses": [
+        {
+          "clause_id": "1.1",
+          "clause_title": "Base Subscription",
+          "clause_text": "Base Subscription\nMonthly Platform Access Fee: INR 5,50,000."
+        },
+        {
+          "clause_id": "1.2",
+          "clause_title": "Variable Usage Fees",
+          "clause_text": "Variable Usage Fees\nCompute Execution Charges (per pipeline run): INR 4,500.\nStorage Allocation (per TB/month): INR 11,000."
+        }
+      ],
+      "location": {
+        "start": 34,
+        "end": 328
+      },
+      "source_meta": {
+        "file_type": "txt",
+        "source_format": "txt",
+        "file_hash": "ef1e2fbc1a717e5ba6a9ec3edeaaf00d7476ed7102c33a571b9d1c7718054e47",
+        "parser_version": "v2-multideal"
+      }
+    },
+    {
+      "deal_name": "Blackbay_III",
+      "document_id": "Payment_Terms_and_Fee_Schedule",
+      "section_id": "SECTION 2",
+      "section_title": "Invoicing & Payment",
+      "section_text": "Payment Terms\nPayment due within fifteen (15) calendar days of invoice date. Late payments accrue interest @ 1.5% per month.\n\nCurrency & Taxes\nAll taxes, GST obligations, and withholding remittances are the responsibility of the Client.",
+      "clauses": [
+        {
+          "clause_id": "2.1",
+          "clause_title": "Payment Terms",
+          "clause_text": "Payment Terms\nPayment due within fifteen (15) calendar days of invoice date. Late payments accrue interest @ 1.5% per month."
+        },
+        {
+          "clause_id": "2.2",
+          "clause_title": "Currency & Taxes",
+          "clause_text": "Currency & Taxes\nAll taxes, GST obligations, and withholding remittances are the responsibility of the Client."
+        }
+      ],
+      "location": {
+        "start": 359,
+        "end": 606
+      },
+      "source_meta": {
+        "file_type": "txt",
+        "source_format": "txt",
+        "file_hash": "ef1e2fbc1a717e5ba6a9ec3edeaaf00d7476ed7102c33a571b9d1c7718054e47",
+        "parser_version": "v2-multideal"
+      }
+    },
+    {
+      "deal_name": "Blackbay_III",
+      "document_id": "Payment_Terms_and_Fee_Schedule",
+      "section_id": "SECTION 3",
+      "section_title": "Penalties & Adjustments",
+      "section_text": "Service Downtime\nIf availability falls below 99.3% uptime per calendar month, a 12% service credit shall be issued.\n\nTermination Balance\nOutstanding fees become immediately payable upon termination.",
+      "clauses": [
+        {
+          "clause_id": "3.1",
+          "clause_title": "Service Downtime",
+          "clause_text": "Service Downtime\nIf availability falls below 99.3% uptime per calendar month, a 12% service credit shall be issued."
+        },
+        {
+          "clause_id": "3.4",
+          "clause_title": "Termination Balance",
+          "clause_text": "Termination Balance\nOutstanding fees become immediately payable upon termination."
+        }
+      ],
+      "location": {
+        "start": 641,
+        "end": 848
+      },
+      "source_meta": {
+        "file_type": "txt",
+        "source_format": "txt",
+        "file_hash": "ef1e2fbc1a717e5ba6a9ec3edeaaf00d7476ed7102c33a571b9d1c7718054e47",
+        "parser_version": "v2-multideal"
+      }
+    }
+  ]
+}
