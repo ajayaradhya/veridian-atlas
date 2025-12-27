@@ -3,11 +3,11 @@ chunker.py
 ----------
 Transforms processed sections.json files into retrieval-ready chunks.
 
-Latest Enhancements:
-- parent_section normalized to SECTION_### form
-- Zero-padded normalized section identifiers
-- Added document_display_name (human friendly title)
-- Cross-platform path normalization
+Finalized Standards:
+- Chunk IDs match embedding collection naming
+- No double-colons
+- Safe normalized document IDs
+- Normalized parent_section
 """
 
 import json
@@ -25,43 +25,30 @@ BASE_DEALS_PATH = Path("veridian_atlas/data/deals")
 # -------------------------------------------------------
 
 def safe_id(value: str) -> str:
-    return str(value).strip().replace(" ", "_").replace("–", "-").replace("—", "-")
+    return str(value).strip().replace(" ", "_").replace("-", "_").replace("–", "_").replace("—", "_")
 
 
 def display_name(value: str) -> str:
-    return value.replace("_", " ").replace("-", " ").title()
+    return value.replace("_", " ").title()
 
 
 def normalize_section(section_id: str) -> str:
-    """
-    Convert:
-       SECTION 1    → SECTION_001
-       SECTION 10   → SECTION_010
-       SECTION 3.2  → SECTION_003_2
-    """
     raw = section_id.replace("SECTION", "").strip()
     parts = raw.replace(".", "_").replace("(", "_").replace(")", "").split("_")
-
-    padded = []
-    for p in parts:
-        if p.isdigit():
-            padded.append(p.zfill(3))
-        else:
-            padded.append(p)
-
+    padded = [(p.zfill(3) if p.isdigit() else p) for p in parts]
     return f"SECTION_{'_'.join(padded)}"
 
 
 # -------------------------------------------------------
-# CHUNK ID BUILDERS
+# CHUNK ID BUILDERS (UPDATED)
 # -------------------------------------------------------
 
 def build_section_chunk_id(deal: str, doc: str, normalized_section: str) -> str:
-    return f"VA::{safe_id(deal)}::{safe_id(doc)}::{normalized_section}"
+    return f"VA_{safe_id(deal)}_{safe_id(doc)}_{normalized_section}"
 
 
 def build_clause_chunk_id(deal: str, doc: str, normalized_section: str, clause_id: str) -> str:
-    return f"VA::{safe_id(deal)}::{safe_id(doc)}::{normalized_section}::CLAUSE_{safe_id(clause_id)}"
+    return f"VA_{safe_id(deal)}_{safe_id(doc)}_{normalized_section}_CLAUSE_{safe_id(clause_id)}"
 
 
 # -------------------------------------------------------
@@ -72,11 +59,12 @@ def build_chunks_from_json(parsed_json: Dict, deal_name: str, deal_root: Path) -
     chunks = []
 
     for document_id, sections in parsed_json.items():
-        raw_source_path = str(deal_root / "raw" / f"{document_id}.txt").replace("\\", "/")
         doc_display = display_name(document_id)
+        raw_source_path = str((deal_root / "raw" / f"{document_id}.txt")).replace("\\", "/")
 
         for sec in sections:
             section_id = sec.get("section_id", "")
+            normalized_section = normalize_section(section_id)
             section_title = sec.get("section_title", "").strip()
             section_text = sec.get("section_text", "").strip()
             clauses = sec.get("clauses", [])
@@ -85,11 +73,9 @@ def build_chunks_from_json(parsed_json: Dict, deal_name: str, deal_root: Path) -
             file_hash = src_meta.get("file_hash")
             source_format = src_meta.get("source_format", "txt")
 
-            # NEW: consistent normalized parent reference
-            normalized_section = normalize_section(section_id)
-            parent_norm = normalized_section  # ← this is the updated behavior
-
-            # SECTION-LEVEL (no clauses)
+            # ------------------------------------------
+            # SECTION-LEVEL CHUNK
+            # ------------------------------------------
             if not clauses:
                 chunk_id = build_section_chunk_id(deal_name, document_id, normalized_section)
                 chunks.append({
@@ -104,18 +90,20 @@ def build_chunks_from_json(parsed_json: Dict, deal_name: str, deal_root: Path) -
                     "content": section_text,
                     "metadata": {
                         "origin": "section_no_clauses",
-                        "parent_section": parent_norm,            # UPDATED HERE
+                        "parent_section": normalized_section,
                         "file_hash": file_hash,
                         "source_format": source_format,
                         "source_path": raw_source_path,
-                        "length_chars": len(section_text),
+                        "length_chars": len(section_text)
                     },
                 })
                 continue
 
-            # CLAUSE-LEVEL
+            # ------------------------------------------
+            # CLAUSE-LEVEL CHUNKS
+            # ------------------------------------------
             for clause in clauses:
-                clause_id = clause.get("clause_id")
+                clause_id = clause.get("clause_id", "")
                 clause_title = clause.get("clause_title", "").strip()
                 clause_text = clause.get("clause_text", "").strip()
 
@@ -135,11 +123,11 @@ def build_chunks_from_json(parsed_json: Dict, deal_name: str, deal_root: Path) -
                     "content": clause_text,
                     "metadata": {
                         "origin": "clause",
-                        "parent_section": parent_norm,            # UPDATED HERE
+                        "parent_section": normalized_section,
                         "file_hash": file_hash,
                         "source_format": source_format,
                         "source_path": raw_source_path,
-                        "length_chars": len(clause_text),
+                        "length_chars": len(clause_text)
                     },
                 })
 
@@ -161,8 +149,7 @@ def chunk_from_file(section_json_path: Path):
     raw = json.loads(section_json_path.read_text(encoding="utf-8"))
     logger.info(f"[LOAD] Deal={deal_name} | Documents={len(raw)}")
 
-    chunks = build_chunks_from_json(raw, deal_name, deal_root)
-    return deal_name, chunks
+    return deal_name, build_chunks_from_json(raw, deal_name, deal_root)
 
 
 # -------------------------------------------------------

@@ -1,50 +1,71 @@
 """
 test_rag.py
 -----------
-End-to-end validation for the Veridian Atlas RAG pipeline.
-Ensures:
- - Chroma index loads correctly
- - Retrieval returns relevant context chunks
- - Qwen model generates a citation-backed answer
-
+Deal-aware RAG validation. Each deal gets questions that match its own documents.
 Run:
-    python -m veridian_atlas.rag.test_rag
+    python -m veridian_atlas.kickoff.test_rag
 """
 
 from veridian_atlas.rag.rag_engine import answer_query
-from pathlib import Path
 
-# Suggested smoke test questions that reference known text
-TEST_QUERIES = [
-    "What is the interest rate for the Revolving Credit Facility?",
-    "When does the Term Loan A Facility mature?",
-    "What triggers early termination?",
-    "Who is the Borrower in this agreement?"
-]
+# ------------------------------------------------------
+# TARGETED QUESTIONS PER DEAL (based on your .txt files)
+# ------------------------------------------------------
 
+TEST_MATRIX = {
+    "Blackbay_III": [
+        "What does clause 2.1 in the Payment Terms and Fee Schedule describe?",
+        "Retrieve onboarding or setup fee provisions from the Payment Terms document.",
+        "What does the agreement specify about late payment obligations?",
+        "Fetch clause 2.2 from the Master Service Agreement.",
+        "What documentation is required before first draw under Conditions Precedent?"
+    ],
+
+    "SilverRock_II": [
+        "What collateral is pledged under the Security Package Schedule?",
+        "What triggers disbursement control under the Security Package Schedule?",
+        "What is defined under clause 2.3 in the Definitions and Glossary?",
+        "What happens if the DSCR covenant is breached?",
+        "List the collateral components referenced in Schedule section 1."
+    ],
+
+    "AxiomCapital_V": [
+        "What documentation is required before the first draw under Conditions Precedent?",
+        "What do the Legal Opinions clauses require?",
+        "What is the maturity date of the Revolving Credit Facility?",
+        "What rights are granted under clause 3.4 of the Lease Commitment Agreement?",
+        "What is the collateral enforcement process described in section 2?"
+    ],
+}
+
+# ------------------------------------------------------
+# TEST RUNNER
+# ------------------------------------------------------
 
 def run_tests():
-    print("\n================= RAG SYSTEM TEST =================")
-    for q in TEST_QUERIES:
-        print("\n--------------------------------------------------")
-        print(f"QUERY: {q}")
-        print("--------------------------------------------------")
+    print("\n================= RAG SYSTEM TEST =================\n")
 
-        try:
-            result = answer_query(q)
-        except Exception as e:
-            print(f"[ERROR] RAG failure: {e}")
-            continue
+    for deal, questions in TEST_MATRIX.items():
+        print(f"\n************** DEAL: {deal} **************")
 
-        answer_text = result.get("answer", "").strip()
-        citations = result.get("citations") or result.get("citations_model", [])
+        for q in questions:
+            print("\n--------------------------------------------------")
+            print(f"QUERY: {q}")
+            print("--------------------------------------------------")
 
-        print("\nANSWER:")
-        print(answer_text)
+            try:
+                result = answer_query(query=q, deal_name=deal)
+            except Exception as e:
+                print(f"[ERROR] Failed to process → {e}")
+                continue
 
-        print("\nCITATIONS:")
-        for c in citations:
-            print(f"  - {c}")
+            answer = result.get("answer", "").strip()
+            citations = result.get("citations", [])
+            retrieved = result.get("retrieved_chunks", [])
+
+            print(f"\nANSWER: {answer}")
+            print(f"CITATIONS: {citations}")
+            print(f"RETRIEVED: {retrieved}")
 
     print("\n================= TEST COMPLETE =================\n")
 
@@ -54,12 +75,4 @@ def run_tests():
 # ------------------------------------------------------
 
 if __name__ == "__main__":
-    # Optional safety check: ensure index exists
-    chroma_path = Path("veridian_atlas/data/indexes/chroma_db")
-    if not chroma_path.exists():
-        print("[ERROR] No Chroma index found.")
-        print("Run embeddings/index step first:")
-        print("  python -m veridian_atlas.kickoff.start_embeddings")
-        raise SystemExit(1)
-
     run_tests()

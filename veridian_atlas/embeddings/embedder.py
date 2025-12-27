@@ -9,12 +9,12 @@ import torch
 from sentence_transformers import SentenceTransformer
 
 EMBEDDING_MODELS = {
-    "fast": "sentence-transformers/all-MiniLM-L6-v2",
+    # "fast": "sentence-transformers/all-MiniLM-L6-v2",
     "balanced": "sentence-transformers/all-mpnet-base-v2",
     "high_quality": "sentence-transformers/multi-qa-mpnet-base-dot-v1"
 }
 
-DEFAULT_MODEL = EMBEDDING_MODELS["balanced"]  # improved default
+DEFAULT_MODEL = "sentence-transformers/all-mpnet-base-v2"   # 768d
 
 
 def _select_device():

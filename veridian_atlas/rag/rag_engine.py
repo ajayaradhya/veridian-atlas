@@ -1,7 +1,11 @@
 """
 rag_engine.py
 -------------
-Core RAG workflow with corrected JSON handling and citation separation.
+Per-deal RAG engine (improved):
+ - Per-deal collections → VA_{deal_name}
+ - Manual embedding for queries (no dimension mismatch)
+ - Allows semantic paraphrasing (no overstrict substring match)
+ - Still prevents hallucinated citations
 """
 
 from pathlib import Path
@@ -10,105 +14,128 @@ import chromadb
 from chromadb.config import Settings
 
 from veridian_atlas.rag.local_llm import generate_response
+from veridian_atlas.embeddings.embedder import hf_embedder
 
 DEFAULT_DB_PATH = Path("veridian_atlas/data/indexes/chroma_db")
-COLLECTION_NAME = "veridian_atlas"
 TOP_K = 5
 
 
-def get_chroma_collection(db_path: Path = DEFAULT_DB_PATH):
+# ------------------------------------------------------------
+# COLLECTION ACCESS (one per deal)
+# ------------------------------------------------------------
+def get_chroma_collection(deal_name: str, db_path: Path = DEFAULT_DB_PATH):
+    collection_name = f"VA_{deal_name}".replace(" ", "_")
     client = chromadb.PersistentClient(
         path=str(db_path),
         settings=Settings(anonymized_telemetry=False)
     )
-    try:
-        return client.get_collection(COLLECTION_NAME)
-    except Exception as err:
-        raise RuntimeError(
-            f"[RAG ERROR] No Chroma collection named '{COLLECTION_NAME}'. "
-            "Run embedding setup: python -m veridian_atlas.kickoff.start_embeddings"
-        ) from err
+    return client.get_collection(collection_name)
 
 
-def retrieve_context(query: str, top_k: int = TOP_K) -> List[Dict[str, Any]]:
-    collection = get_chroma_collection()
+# ------------------------------------------------------------
+# RETRIEVAL (manual embedding fixes 384 vs 768 errors)
+# ------------------------------------------------------------
+def retrieve_context(query: str, deal_name: str, top_k: int = TOP_K) -> List[Dict[str, Any]]:
+    collection = get_chroma_collection(deal_name)
+
+    # Manual embedding → avoids auto-embed mismatch
+    q_vec = hf_embedder.embed_single(query)
 
     results = collection.query(
-        query_texts=[query],
+        query_embeddings=[q_vec],
         n_results=top_k,
-        include=["documents", "metadatas", "distances"]
+        include=["documents", "metadatas", "distances"],
     )
 
     docs = results.get("documents", [[]])[0]
     metas = results.get("metadatas", [[]])[0]
     dists = results.get("distances", [[]])[0]
 
-    contexts = []
-    for doc, meta, dist in zip(docs, metas, dists):
-        contexts.append({
-            "chunk_id": meta.get("chunk_id", "UNKNOWN_CHUNK"),
-            "content": doc.replace("\n", " ").strip(),
-            "section": meta.get("section_id"),
-            "clause": meta.get("clause_id"),
+    return [
+        {
+            "chunk_id": m.get("chunk_id"),
+            "content": d.replace("\n", " ").strip(),
+            "section": m.get("section_id"),
+            "clause": m.get("clause_id"),
             "distance": float(dist),
-        })
-    return contexts
+        }
+        for d, m, dist in zip(docs, metas, dists)
+    ]
 
 
-def build_rag_prompt(query: str, contexts: List[dict]) -> str:
-    blocks = [f"[{c['chunk_id']}] {c['content']}" for c in contexts]
-    context_text = "\n".join(blocks)
+# ------------------------------------------------------------
+# PROMPT BUILDER (restores original behavior)
+# ------------------------------------------------------------
+def build_rag_prompt(query: str, contexts: List[dict], deal_name: str) -> str:
+    ctx = "\n".join([f"[{c['chunk_id']}] {c['content']}" for c in contexts])
 
     return f"""
-You are a financial contract analysis assistant.
+You are a financial contract assistant. Use ONLY the provided context.
 
-Use ONLY the context provided. If the answer is not present, respond exactly:
-"The provided text does not contain enough information."
+RULES:
+- If the answer is not present, respond exactly:
+  "The provided text does not contain enough information."
+- Respond in pure JSON. No explanations. No bullets. No prose.
+- Citations must reference chunk_ids exactly as shown.
 
 QUESTION:
 {query}
 
 CONTEXT:
-{context_text}
+{ctx}
 
-RESPONSE RULES:
-- Respond ONLY in valid JSON.
-- "answer" must be short and factual.
-- "citations" must reference chunk IDs exactly as shown.
-
-OUTPUT FORMAT:
+RESPONSE FORMAT (JSON ONLY):
 {{
-  "answer": "...",
-  "citations": ["chunk_id"]
+  "answer": "short answer here",
+  "citations": ["chunk_id_1", "chunk_id_2"]
 }}
 """.strip()
 
 
-def answer_query(query: str, top_k: int = TOP_K) -> Dict[str, Any]:
-    contexts = retrieve_context(query, top_k)
+# ------------------------------------------------------------
+# MAIN ENTRYPOINT
+# ------------------------------------------------------------
+def answer_query(query: str, deal_name: str, top_k: int = TOP_K) -> Dict[str, Any]:
+    contexts = retrieve_context(query, deal_name, top_k)
 
     if not contexts:
         return {
             "query": query,
+            "deal": deal_name,
             "answer": "The provided text does not contain enough information.",
-            "citations_model": [],
-            "citations_retrieved": [],
+            "citations": [],
+            "retrieved_chunks": [],
             "sources": []
         }
 
-    prompt = build_rag_prompt(query, contexts)
-    model_json = generate_response(prompt)
+    prompt = build_rag_prompt(query, contexts, deal_name)
+    raw = generate_response(prompt)
+
+    model_answer = raw.get("answer", "").strip()
+    model_citations = raw.get("citations", [])
+
+    # Valid retrieved chunk IDs
+    retrieved_ids = [c["chunk_id"] for c in contexts]
+    context_text = " ".join([c["content"].lower() for c in contexts])
+
+    # Step 1 — Keep only citations that actually exist in retrieval
+    citations = [c for c in model_citations if c in retrieved_ids]
+
+    # Step 2 — Only reject if citations reference chunks that do not exist
+    if any(c not in retrieved_ids for c in model_citations):
+        model_answer = "The provided text does not contain enough information."
+        citations = []
+
+    # Step 3 — Allow paraphrasing; we do NOT require substring match anymore
+    if not citations and model_answer != "The provided text does not contain enough information.":
+        # No valid evidence; cannot justify answer
+        model_answer = "The provided text does not contain enough information."
 
     return {
         "query": query,
-        "answer": model_json.get("answer"),
-        "citations": model_json.get("citations", []),
-        "citations_model": model_json.get("citations", []),        # from model
-        "citations_retrieved": [c["chunk_id"] for c in contexts],  # from vector DB
+        "deal": deal_name,
+        "answer": model_answer,
+        "citations": citations,
+        "retrieved_chunks": retrieved_ids,
         "sources": contexts
     }
-
-
-if __name__ == "__main__":
-    test_question = "What is the interest rate for the Revolving Credit Facility?"
-    print(answer_query(test_question))
