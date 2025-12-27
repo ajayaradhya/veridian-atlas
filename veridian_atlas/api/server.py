@@ -2,12 +2,28 @@
 from fastapi import FastAPI
 from veridian_atlas.api.schemas import QueryRequest, QueryResponse, SourceRef
 from veridian_atlas.rag.query_service import QueryService
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(
     title="Veridian Atlas RAG API",
     description="Local RAG engine for financial contract Q&A",
-    version="0.3.2"
+    version="0.3.3"
 )
+
+# --- CORS CONFIG ---
+origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,          # React dev server
+    allow_credentials=True,
+    allow_methods=["*"],            # <-- allow POST, OPTIONS, GET, etc
+    allow_headers=["*"],            # <-- allow Authorization, Content-Type, etc
+)
+
 
 service = QueryService()
 
