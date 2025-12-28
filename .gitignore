@@ -23,6 +23,7 @@ env/
 .vscode/
 .idea/
 *.code-workspace
+.pytest_cache
 
 #################################################################
 # VERIDIAN ATLAS - PROJECT SPECIFIC

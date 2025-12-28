@@ -2,7 +2,7 @@ name: Veridian Atlas - CI Tests
 
 on:
   push:
-    branches: ["main", "master"]
+    branches: ["master"]
   pull_request:
 
 jobs:
