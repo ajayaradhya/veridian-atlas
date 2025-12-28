@@ -16,7 +16,8 @@ from chromadb.config import Settings
 from veridian_atlas.rag_engine.services.local_llm import generate_response
 from veridian_atlas.data_pipeline.processors.embedder import hf_embedder
 
-DEFAULT_DB_PATH = Path("veridian_atlas/data/indexes/chroma_db")
+PACKAGE_ROOT = Path(__file__).resolve().parent.parent.parent
+DEFAULT_DB_PATH = PACKAGE_ROOT / "data" / "indexes" / "chroma_db"
 TOP_K = 5
 
 
