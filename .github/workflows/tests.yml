@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        python-version: ["3.10", "3.11", "3.12"]
+        python-version: ["3.11"]
 
     steps:
     - name: Checkout repository
@@ -50,9 +50,9 @@ jobs:
         pytest -q --disable-warnings --maxfail=1
 
     # -------------------------------------------
-    # OPTIONAL: enable coverage (future switch)
+    # Enable coverage (future switch)
     # -------------------------------------------
-    # - name: Run coverage
-    #   run: |
-    #     pip install pytest-cov
-    #     pytest --cov=veridian_atlas --cov-report=xml
+    - name: Run coverage
+      run: |
+        pip install pytest-cov
+        pytest --cov=veridian_atlas --cov-report=xml
