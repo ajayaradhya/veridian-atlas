@@ -38,6 +38,18 @@ Retrieved chunk viewer with metadata
 Veridian Atlas follows a document-to-answer pipeline designed for **traceable, deal-isolated retrieval**.  
 If it was not retrieved, it cannot be used in the answer.
 
+```mermaid
+flowchart LR
+    A["Raw Docs"] --> B["Ingestion"]
+    B --> C["Chunking"]
+    C --> D["Embeddings"]
+    D --> E["ChromaDB Index"]
+    F["User Question"] --> G["FastAPI Endpoint: /ask/{deal_id}"]
+    G --> E
+    E --> H["Top-K Retrieved Context"]
+    H --> I["LLM (Grounded Answer + Citations)"]
+```
+
 📌 **Full architecture with flowcharts and diagrams:** [View Architecture Overview](docs/diagrams/ARCHITECTURE.md)
 
 
