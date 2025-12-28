@@ -128,6 +128,13 @@ python -m veridian_atlas.cli.run_query --deal Blackbay_III --question "terminati
 
 ---
 
+### Onboarding New Deals
+
+To add your own credit agreements or contracts to the system:
+➡️ Read the guide here: **[ADDING_NEW_DEALS.md](ADDING_NEW_DEALS.md)**.
+
+---
+
 # License
 MIT — free to use, extend, or integrate.
 
