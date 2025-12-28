@@ -3,6 +3,9 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
 
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+
 from veridian_atlas.api.schemas import QueryRequest, QueryResponse, SearchResponse
 from veridian_atlas.rag_engine.pipeline.rag_engine import (
     retrieve_context,
@@ -57,6 +60,15 @@ def root():
 @app.get("/health")
 def health_check():
     return service.health()
+
+
+# Serve the built UI
+app.mount("/static", StaticFiles(directory="src/veridian_atlas/static"), name="static")
+
+
+@app.get("/ui")
+def serve_ui():
+    return FileResponse("src/veridian_atlas/static/index.html")
 
 
 # ---------------------------------------------------------
