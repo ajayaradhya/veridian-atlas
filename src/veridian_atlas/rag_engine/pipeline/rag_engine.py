@@ -26,8 +26,7 @@ TOP_K = 5
 def get_chroma_collection(deal_name: str, db_path: Path = DEFAULT_DB_PATH):
     collection_name = f"VA_{deal_name}".replace(" ", "_")
     client = chromadb.PersistentClient(
-        path=str(db_path),
-        settings=Settings(anonymized_telemetry=False)
+        path=str(db_path), settings=Settings(anonymized_telemetry=False)
     )
     return client.get_collection(collection_name)
 
@@ -106,7 +105,7 @@ def answer_query(query: str, deal_name: str, top_k: int = TOP_K) -> Dict[str, An
             "answer": "The provided text does not contain enough information.",
             "citations": [],
             "retrieved_chunks": [],
-            "sources": []
+            "sources": [],
         }
 
     prompt = build_rag_prompt(query, contexts, deal_name)
@@ -117,7 +116,6 @@ def answer_query(query: str, deal_name: str, top_k: int = TOP_K) -> Dict[str, An
 
     # Valid retrieved chunk IDs
     retrieved_ids = [c["chunk_id"] for c in contexts]
-    context_text = " ".join([c["content"].lower() for c in contexts])
 
     # Step 1 — Keep only citations that actually exist in retrieval
     citations = [c for c in model_citations if c in retrieved_ids]
@@ -138,5 +136,5 @@ def answer_query(query: str, deal_name: str, top_k: int = TOP_K) -> Dict[str, An
         "answer": model_answer,
         "citations": citations,
         "retrieved_chunks": retrieved_ids,
-        "sources": contexts
+        "sources": contexts,
     }
