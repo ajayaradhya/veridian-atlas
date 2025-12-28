@@ -6,7 +6,17 @@ services:
     container_name: veridian_atlas_api
     ports:
       - "8000:8000"
-    volumes:
-      - ./src/veridian_atlas/data:/app/src/veridian_atlas/data
+    restart: unless-stopped
     environment:
       - ENV=production
+    volumes:
+      - ./src/veridian_atlas/data:/app/src/veridian_atlas/data
+      - chroma_index:/app/src/veridian_atlas/data/indexes/chroma_db
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  chroma_index:
