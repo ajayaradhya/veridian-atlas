@@ -1,0 +1,12 @@
+version: "3.9"
+
+services:
+  api:
+    build: .
+    container_name: veridian_atlas_api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./src/veridian_atlas/data:/app/src/veridian_atlas/data
+    environment:
+      - ENV=production
