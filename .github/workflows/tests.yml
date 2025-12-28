@@ -1,4 +1,4 @@
-name: Veridian Atlas Tests
+name: Veridian Atlas - CI Tests
 
 on:
   push:
@@ -9,20 +9,50 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    strategy:
+      fail-fast: true
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
     steps:
-    - name: Checkout repo
+    - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Set up Python 3.11
+    - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
-        python-version: 3.11
+        python-version: ${{ matrix.python-version }}
 
+    # -------------------------------------------
+    # Speed up installs by caching pip packages
+    # -------------------------------------------
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    # -------------------------------------------
+    # Install dependencies
+    # -------------------------------------------
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Run tests
+    # -------------------------------------------
+    # Run tests (fail on first error)
+    # -------------------------------------------
+    - name: Run test suite
       run: |
         pytest -q --disable-warnings --maxfail=1
+
+    # -------------------------------------------
+    # OPTIONAL: enable coverage (future switch)
+    # -------------------------------------------
+    # - name: Run coverage
+    #   run: |
+    #     pip install pytest-cov
+    #     pytest --cov=veridian_atlas --cov-report=xml

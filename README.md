@@ -155,6 +155,12 @@ To add your own credit agreements or contracts to the system:
 
 ---
 
+## Coverage
+
+![coverage](https://img.shields.io/codecov/c/github/ajayaradhya/veridian-atlas)
+
+---
+
 # License
 MIT — free to use, extend, or integrate.
 
