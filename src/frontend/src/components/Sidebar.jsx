@@ -1,169 +1,227 @@
 // src/components/Sidebar.jsx
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { User } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Trash2, User } from "lucide-react";
 
-// -------------------------------------------------------------
-// Group by date buckets (original logic preserved)
-// -------------------------------------------------------------
+// --------------------------------------
+// DATE GROUPING
+// --------------------------------------
 function groupByDate(history) {
   const today = new Date();
   const start = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
-  const yesterday = start - 86400000;
-  const week = start - 86400000 * 7;
+  const yesterdayStart = start - 86400000;
+  const weekStart = start - 86400000 * 7;
 
   const groups = { Today: [], Yesterday: [], "This Week": [], Older: [] };
 
   history.forEach((item) => {
     const ts = new Date(item.timestamp).getTime();
     if (ts >= start) groups.Today.push(item);
-    else if (ts >= yesterday) groups.Yesterday.push(item);
-    else if (ts >= week) groups["This Week"].push(item);
+    else if (ts >= yesterdayStart) groups.Yesterday.push(item);
+    else if (ts >= weekStart) groups["This Week"].push(item);
     else groups.Older.push(item);
-  });
-
-  Object.keys(groups).forEach((key) => {
-    groups[key].sort(
-      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    );
   });
 
   return groups;
 }
 
-export default function Sidebar({
-  history,
-  setHistory,
-  onSelect,     // onSelect({deal, query})
-  onNewChat,
-}) {
-  const [searchTerm, setSearchTerm] = useState("");
+// Format Time Display
+function formatTime(timestamp) {
+  const d = new Date(timestamp);
+  return d.toLocaleString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
 
-  const filtered = history.filter((item) =>
-    item.query.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.deal?.toLowerCase().includes(searchTerm.toLowerCase())
+export default function Sidebar({ history, setHistory, onSelect, onNewChat }) {
+  const [search, setSearch] = useState("");
+  const [width, setWidth] = useState(280);
+  const [hoverItem, setHoverItem] = useState(null);
+  const [hoverPos, setHoverPos] = useState({ x: 0, y: 0 });
+  const resizing = useRef(false);
+
+  // --------------------------------------
+  // RESIZE LOGIC
+  // --------------------------------------
+  const startResize = () => {
+    resizing.current = true;
+    document.body.style.userSelect = "none";
+  };
+  const resize = (e) => {
+    if (!resizing.current) return;
+    setWidth(Math.min(Math.max(e.clientX, 240), 420));
+  };
+  const stopResize = () => {
+    resizing.current = false;
+    document.body.style.userSelect = "";
+  };
+  useEffect(() => {
+    window.addEventListener("mousemove", resize);
+    window.addEventListener("mouseup", stopResize);
+    return () => {
+      window.removeEventListener("mousemove", resize);
+      window.removeEventListener("mouseup", stopResize);
+    };
+  }, []);
+
+  // DELETE
+  const deleteItem = (id) => setHistory((prev) => prev.filter((x) => x.timestamp !== id));
+  const clearAll = () => setHistory([]);
+
+  const filtered = history.filter((x) =>
+    (x.query + (x.deal || "")).toLowerCase().includes(search.toLowerCase())
   );
-
   const grouped = groupByDate(filtered);
 
-  const deleteItem = (timestamp) =>
-    setHistory((prev) => prev.filter((h) => h.timestamp !== timestamp));
-
-  const deleteAll = () => {
-    if (confirm("Clear entire history? This action cannot be undone.")) {
-      setHistory([]);
-      setSearchTerm("");
-    }
+  // Hover logic
+  const handleHover = (e, item) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setHoverPos({ x: rect.right + 10, y: rect.top + rect.height / 2 });
+    setHoverItem(item);
   };
+  const clearHover = () => setHoverItem(null);
 
+  // --------------------------------------
   return (
-    <div className="h-screen w-64 bg-[#0a0a0a] text-gray-200 border-r border-[#1c1c1c] flex flex-col dark-scroll">
+    <aside
+      style={{ width }}
+      className="relative flex flex-col h-screen bg-[#0d0d0d] border-r border-[#1a1a1a] dark-scroll"
+    >
+      {/* Resize Handle */}
+      <div
+        onMouseDown={startResize}
+        className="absolute right-0 top-0 w-[6px] h-full cursor-col-resize hover:bg-white/10 z-40"
+      />
 
       {/* NEW CHAT */}
-      <div className="p-4 border-b border-[#1c1c1c]">
-        <Button
-          className="w-full bg-[#1a1a1a] hover:bg-[#262626] text-gray-100"
-          onClick={() => {
-            onNewChat();
-            setSearchTerm("");
-          }}
+      <div className="border-b border-[#1a1a1a] p-3">
+        <button
+          className="w-full bg-[#161616] hover:bg-[#212121] py-2 text-sm rounded-md"
+          onClick={onNewChat}
         >
           + New Chat
-        </Button>
+        </button>
       </div>
 
-      {/* SEARCH INPUT */}
-      <div className="p-4 border-b border-[#1c1c1c] space-y-2">
+      {/* SEARCH */}
+      <div className="border-b border-[#1a1a1a] p-3">
         <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
           placeholder="Search history..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full px-3 py-2 rounded-md bg-[#1b1b1b] border border-[#2b2b2b]
-            text-gray-200 text-sm focus:outline-none focus:border-[#3c3c3c]"
+          className="w-full px-3 py-2 text-sm rounded-md bg-[#111] border border-[#2b2b2b] focus:border-[#3b3b3b] outline-none"
         />
-        {searchTerm && (
+      </div>
+
+        {/* HISTORY LIST */}
+        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6 max-h-[calc(100vh-230px)] dark-scroll">
+          {Object.values(grouped).every((v) => v.length === 0) && (
+            <p className="text-xs text-gray-500 pl-1">No history found.</p>
+          )}
+
+          {Object.entries(grouped).map(([label, items]) => {
+            if (items.length === 0) return null;
+
+            const sortedItems = [...items].sort(
+              (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+            );
+
+            return (
+              <div key={label} className="space-y-2">
+                <p className="text-[11px] text-gray-500 uppercase tracking-wide pl-1">{label}</p>
+
+                {sortedItems.map((item) => (
+                  <div
+                    key={item.timestamp}
+                    className="
+                      relative flex items-center justify-between
+                      bg-[#0f0f0f] hover:bg-[#1a1a1a]
+                      rounded-md px-3 py-2 cursor-pointer transition
+                    "
+                    onMouseEnter={(e) => handleHover(e, item)}
+                    onMouseLeave={clearHover}
+                  >
+                    <div
+                      className="flex-1 min-w-0"
+                      onClick={() => onSelect({ deal: item.deal, query: item.query })}
+                    >
+                      <p className="text-sm text-gray-200 truncate">{item.query}</p>
+                      {item.deal && (
+                        <span className="text-[10px] text-gray-500 bg-[#1c1c1c] px-2 py-[1px] rounded mt-1 inline-block truncate">
+                          {item.deal}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* DELETE ICON ALWAYS VISIBLE BUT LIGHT */}
+                    <button
+                      className="
+                        text-gray-600 opacity-60
+                        hover:opacity-100 hover:text-red-500
+                        transition ml-2 z-50
+                      "
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteItem(item.timestamp);
+                      }}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+
+
+      {/* FLOATING HOVER PREVIEW */}
+      {hoverItem && (
+        <div
+          className="fixed bg-[#0e0e0e]/95 backdrop-blur-xl border border-[#272727]
+          rounded-xl shadow-2xl p-4 text-sm text-gray-200 w-[260px]
+          z-[9999] pointer-events-none animate-fadeIn"
+          style={{
+            top: hoverPos.y - 40,
+            left: hoverPos.x
+          }}
+        >
+          <p className="mb-2 leading-relaxed">{hoverItem.query}</p>
+
+          {hoverItem.deal && (
+            <p className="text-[11px] text-gray-400 border-t border-[#222] pt-2">
+              Deal: <span className="text-gray-300">{hoverItem.deal}</span>
+            </p>
+          )}
+
+          <p className="text-[11px] text-gray-500 mt-1">
+            {formatTime(hoverItem.timestamp)}
+          </p>
+        </div>
+      )}
+
+      {/* FOOTER */}
+      <div className="border-t border-[#1a1a1a] p-3 space-y-3">
+        {history.length > 0 && (
           <button
-            onClick={() => setSearchTerm("")}
-            className="text-[11px] text-gray-500 hover:text-gray-300"
+            className="w-full border border-[#333] hover:bg-[#191919] text-gray-300 rounded-md py-2 text-sm"
+            onClick={clearAll}
           >
-            Clear
+            Clear History
           </button>
         )}
-      </div>
 
-      {/* HISTORY GROUPS */}
-      <ScrollArea className="flex-1 px-3 py-3 space-y-5">
-        {Object.values(grouped).every((arr) => arr.length === 0) && (
-          <p className="text-xs text-gray-500 mt-4">No history found.</p>
-        )}
-
-        {Object.entries(grouped).map(([label, items]) =>
-          items.length > 0 && (
-            <div key={label}>
-              <p className="text-[11px] text-gray-500 uppercase tracking-wide mb-2">
-                {label}
-              </p>
-
-              {items.map((item) => (
-                <div
-                  key={item.timestamp}
-                  className="flex items-center justify-between group rounded-md hover:bg-[#1f1f1f] transition px-2"
-                >
-                  {/* Select history item */}
-                  <button
-                    className="flex-1 text-left py-2 text-sm truncate"
-                    onClick={() =>
-                      onSelect({ deal: item.deal, query: item.query })
-                    }
-                  >
-                    <p className="truncate text-gray-200">{item.query}</p>
-                    {item.deal && (
-                      <span
-                        className="mt-1 inline-block text-[10px] px-2 py-0.5 rounded-md
-                          bg-[#202020] border border-[#2e2e2e] text-gray-400"
-                      >
-                        {item.deal}
-                      </span>
-                    )}
-                  </button>
-
-                  {/* Delete single */}
-                  <button
-                    onClick={() => deleteItem(item.timestamp)}
-                    className="opacity-0 group-hover:opacity-100 transition text-gray-500 hover:text-red-500 px-2"
-                    title="Delete"
-                  >
-                    🗑
-                  </button>
-                </div>
-              ))}
-            </div>
-          )
-        )}
-      </ScrollArea>
-
-      {/* FOOTER AREA */}
-      <div className="p-4 border-t border-[#1c1c1c] space-y-3">
-
-        <Button
-          variant="outline"
-          className="w-full border-[#bababa] text-gray hover:bg-[#212121]"
-          onClick={deleteAll}
-        >
-          Clear History
-        </Button>
-
-        <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-[#1a1a1a] cursor-pointer transition">
-          <div className="w-8 h-8 rounded-full bg-[#2a2a2a] flex items-center justify-center">
-            <User size={16} className="text-gray-300" />
+        <div className="flex items-center gap-2 p-2 rounded-md hover:bg-[#111] cursor-pointer">
+          <div className="w-8 h-8 bg-[#222] rounded-full flex items-center justify-center">
+            <User size={15} className="text-gray-300" />
           </div>
-          <div className="flex flex-col leading-tight">
-            <span className="text-sm font-medium text-gray-200">Ajay</span>
-            <span className="text-[11px] text-gray-500">Manage Account</span>
+          <div>
+            <p className="text-sm">Ajay</p>
+            <p className="text-[11px] text-gray-500">Manage Account</p>
           </div>
         </div>
       </div>
-    </div>
+    </aside>
   );
 }

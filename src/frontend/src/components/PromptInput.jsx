@@ -2,16 +2,17 @@
 import { useRef } from "react";
 import { Send } from "lucide-react";
 
-export default function PromptInput({ query, setQuery, onAsk, selectedDeal }) {
+export default function PromptInput({ query, setQuery, onAsk, selectedDeal, disabled }) {
   const textareaRef = useRef(null);
 
   const handleSubmit = () => {
-    if (!query.trim() || !selectedDeal) return;
+    if (disabled || !query.trim() || !selectedDeal) return;
     onAsk();
   };
 
   const handleKeyDown = (e) => {
-    // Shift+Enter = newline (allow)
+    if (disabled) return;
+    // Shift+Enter = newline
     if (e.key === "Enter" && e.shiftKey) return;
     // Enter = send
     if (e.key === "Enter") {
@@ -21,6 +22,7 @@ export default function PromptInput({ query, setQuery, onAsk, selectedDeal }) {
   };
 
   const autoResize = () => {
+    if (disabled) return;
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = "auto";
@@ -37,19 +39,6 @@ export default function PromptInput({ query, setQuery, onAsk, selectedDeal }) {
   return (
     <div className="w-full max-w-3xl mx-auto px-4">
 
-      {/* ACTIVE DEAL INDICATOR
-      <div className="mb-2 flex items-center gap-2 text-xs text-gray-400 select-none">
-        <span className="opacity-60">Active deal:</span>
-        <span
-          className="
-            text-gray-200 bg-[#202020] border border-[#2f2f2f]
-            px-2 py-0.5 rounded-md text-[11px]
-          "
-        >
-          {selectedDeal || "No deal selected"}
-        </span>
-      </div> */}
-
       {/* INPUT FIELD */}
       <div
         className={`
@@ -58,25 +47,31 @@ export default function PromptInput({ query, setQuery, onAsk, selectedDeal }) {
           border transition
           bg-[#1a1a1a] hover:border-[#3a3a3a]
           focus-within:border-[#4e4e4e] focus-within:shadow-[0_0_0_2px_rgba(100,100,100,0.15)]
+          ${disabled ? "opacity-50 cursor-not-allowed" : ""}
         `}
       >
         <textarea
           ref={textareaRef}
+          disabled={disabled}
           rows={1}
-          className="
+          className={`
             flex-1 bg-transparent text-gray-200 placeholder-gray-500
             resize-none overflow-hidden focus:outline-none
             text-sm leading-[1.4] pt-[4px]
             break-words whitespace-pre-wrap
             max-h-[200px]
-          "
+            ${disabled ? "cursor-not-allowed" : ""}
+          `}
           placeholder={
-            selectedDeal
-              ? `Ask about deal ${selectedDeal}`
+            disabled
+              ? "No deals available. Query function disabled. Even the servers need therapy."
+              : selectedDeal
+              ? `Ask about deal "${selectedDeal}"`
               : "Select a deal to begin"
           }
           value={query}
           onChange={(e) => {
+            if (disabled) return;
             setQuery(e.target.value);
             autoResize();
           }}
@@ -85,22 +80,30 @@ export default function PromptInput({ query, setQuery, onAsk, selectedDeal }) {
 
         <button
           onClick={handleSubmit}
-          disabled={!selectedDeal || !query.trim()}
-          className="
+          disabled={disabled || !selectedDeal || !query.trim()}
+          className={`
             h-9 w-9 flex items-center justify-center rounded-lg
             bg-[#2c2c2c] hover:bg-[#3a3a3a]
             text-gray-300 transition
             disabled:opacity-40 disabled:cursor-not-allowed
-          "
+          `}
         >
           <Send size={18} />
         </button>
       </div>
 
       {/* HINT TEXT */}
-      <p className="text-[11px] text-gray-500 text-center mt-3 select-none">
-        Enter to send • Shift+Enter for newline
-      </p>
+      {!disabled && (
+        <p className="text-[11px] text-gray-500 text-center mt-3 select-none">
+          Enter to send • Shift+Enter for newline
+        </p>
+      )}
+
+      {disabled && (
+        <p className="text-[11px] text-red-400 text-center mt-3 select-none italic">
+          Deals failed to load. Input disabled. Your curiosity deserves better backend decisions.
+        </p>
+      )}
     </div>
   );
 }

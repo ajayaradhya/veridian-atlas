@@ -62,13 +62,23 @@ def health_check():
     return service.health()
 
 
-# Serve the built UI
-app.mount("/static", StaticFiles(directory="src/veridian_atlas/static"), name="static")
+# ---------------------------------------------------------
+# SERVE FRONTEND (Single Page Application)
+# ---------------------------------------------------------
+FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
+INDEX_HTML = FRONTEND_DIST / "index.html"
 
+# Serve static assets if frontend build exists
+if FRONTEND_DIST.exists() and INDEX_HTML.exists():
+    app.mount("/", StaticFiles(directory=str(FRONTEND_DIST), html=True), name="frontend")
 
-@app.get("/ui")
-def serve_ui():
-    return FileResponse("src/veridian_atlas/static/index.html")
+    # Catch-all -> return index.html so routing works for React/Vite
+    @app.get("/{full_path:path}")
+    async def spa_catch_all(full_path: str):
+        return FileResponse(INDEX_HTML)
+
+else:
+    print("[WARN] No frontend build found. Run: cd src/frontend && npm run build")
 
 
 # ---------------------------------------------------------
