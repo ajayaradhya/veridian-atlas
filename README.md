@@ -1,92 +1,97 @@
 # Veridian Atlas
 **Enterprise RAG for Deal Documents, Agreements & Clause Intelligence**
 
-Veridian Atlas is a full-stack **Retrieval-Augmented Generation (RAG) system** that turns deal documents, credit agreements, fee schedules, and clause libraries into a structured, queryable intelligence layer.
+Veridian Atlas is a full-stack Retrieval-Augmented Generation (RAG) system that turns deal documents, credit agreements, fee schedules, and clause libraries into **searchable intelligence**. It runs a fully governed flow:
 
-It performs ingestion → chunking → embeddings → vector indexing → evidence retrieval → grounded answers with citations.
+**Ingestion → Chunking → Embedding → Vector Indexing → Retrieval → Grounded Answering**
 
-This system is designed for environments where correctness and traceability matter more than creativity.
-
-> This is not a chatbot.  
-> This is retrieval with governance.
-
-## Why Veridian Atlas
-- Retrieval never mixes or leaks across deals
-- Answers grounded in retrieved clauses (no hallucination)
-- Transparent pipeline, each step inspectable
-- Fully local, no external API dependency required
+> This is not a chatbot. This is retrieval with governance — correctness, citations, and isolation between deals.
 
 ---
 
-## 📸 UI Preview
+# Preview
 
-Veridian Atlas includes a lightweight client dashboard for deal selection, asking questions, inspecting retrieved clauses, and validating citations.
+### **Home / Landing Page**
+Deal selection + onboarding UI
 
-### 🔹 Home Screen / Landing
-> Deal selection, onboarding, and first query entry
-![Home Screen](docs/screenshots/ui_home.png)
+![Home Screen](docs/screenshots/1_home_page.png)
 
-### 🔹 Ask a Question
-> Query → retrieve → answer flow (LLM is constrained to retrieved context)
-![Query Flow](docs/screenshots/ui_query.png)
+### **Ask a Question (RAG Query)**
+User query → vector search → LLM with retrieved context  
 
-### 🔹 Retrieved Chunks & Citations
-> Inspection panel showing specific source clauses sent to the LLM
-![Citation Panel](docs/screenshots/ui_chunk_panel.png)
+![Ask Question](docs/screenshots/2_asking_question.png)
 
-### 🔹 Deal Sidebar / History
-> Quick access to past queries, sorted by deal & timestamp
-![Sidebar](docs/screenshots/ui_sidebar.png)
+### **Answer + Citations**
+LLM answer is **only** from retrieved chunks 
+
+![Answer Display](docs/screenshots/5_display_answer.png)
+
+### **Clause Source Panel**
+Retrieved chunk viewer with metadata  
+
+![Clause Details](docs/screenshots/6_clause_details.png)
 
 ---
 
-# ⚙️ Tech Stack
+# Architecture
+
+```
+Raw Docs → Ingestion → Chunking → Embeddings
+           ↓                ↓
+    JSON Sections      chunks.jsonl
+           ↓                ↓
+       Vector DB ← Index Build (Chroma)
+           ↓
+     Retrieval + LLM Answer (Cited)
+```
 
 | Layer | Technology |
 |-------|-------------|
 | Runtime | Python 3.11 |
-| Vector Store | ChromaDB |
+| API | FastAPI |
 | Embeddings | Sentence-Transformers |
-| API Backend | FastAPI |
+| Vector Index | ChromaDB |
 | UI | React + Vite + Tailwind |
-| LLM | Local or external optional |
+| LLM | Local or remote (optional) |
 
 ---
 
-# 📁 Project Structure
-
+# Project Structure
 ```
 veridian-atlas/
 ├─ src/
-│  ├─ veridian_atlas/
-│  │  ├─ api/
-│  │  ├─ cli/
-│  │  ├─ core/
-│  │  ├─ data/
-│  │  ├─ data_pipeline/
-│  │  ├─ rag_engine/
-│  │  └─ utils/
-│  └─ frontend/
+│  ├─ veridian_atlas/         # Backend RAG engine
+│  │  ├─ api/                 # FastAPI routes
+│  │  ├─ cli/                 # CLI pipeline tools
+│  │  ├─ data/                # Deals, processed chunks, vector DB
+│  │  ├─ data_pipeline/       # ingestion/chunking/indexing
+│  │  ├─ rag_engine/          # Retrieval + Answer pipeline
+│  │  └─ utils/               # logging/helpers
+│  └─ frontend/               # UI (React + Tailwind)
+├─ docs/
+│  └─ screenshots/            # UI images
 └─ requirements.txt
 ```
 
 ---
 
-# 🚀 Backend Setup
-
+# Backend Setup
 ```bash
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
+
 uvicorn veridian_atlas.api.server:app --reload --port 8000
 ```
 
-API: `http://127.0.0.1:8000`
+API URL:  
+```
+http://127.0.0.1:8000
+```
 
 ---
 
-# 🖥️ Frontend Setup
-
+# Frontend Setup
 ```bash
 cd src/frontend
 npm install
@@ -104,28 +109,26 @@ npm run dev
 
 ---
 
-# 🎯 CLI Commands
-
+# CLI Commands
 ```bash
 python -m veridian_atlas.cli.run_project --reset
-python -m veridian_atlas.cli.run_project --deal Blackbay_III
-python -m veridian_atlas.cli.run_query --deal SilverRock_II --question "fees?"
+python -m veridian_atlas.cli.run_project --deal AxiomCapital_V
+python -m veridian_atlas.cli.run_query --deal Blackbay_III --question "termination fees?"
 ```
 
 ---
 
-# 🌐 Key Endpoints
-
+# API Endpoints
 | Method | Endpoint |
 |--------|-----------|
-| GET | /deals |
+| GET  | /deals |
 | POST | /ask/{deal_id} |
 | POST | /search/{deal_id} |
-| GET | /chunk/{deal_id}/{chunk_id} |
+| GET  | /chunk/{deal_id}/{chunk_id} |
 
 ---
 
-# 📄 License
-MIT
+# License
+MIT — free to use, extend, or integrate.
 
 ---
