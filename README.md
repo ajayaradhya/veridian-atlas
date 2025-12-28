@@ -1,165 +1,131 @@
-# 🗺️ Veridian Atlas
-**Structured answers from unstructured worlds.**
+# Veridian Atlas
+**Enterprise RAG for Deal Documents, Agreements & Clause Intelligence**
 
-Veridian Atlas is a **hands-on Retrieval-Augmented Generation (RAG) system** designed to teach how real enterprise-grade document intelligence works — from PDF ingestion to chunking, embeddings, vector search, and retrieval-bound LLM answers.
+Veridian Atlas is a full-stack **Retrieval-Augmented Generation (RAG) system** that turns deal documents, credit agreements, fee schedules, and clause libraries into a structured, queryable intelligence layer.
 
-If you want to understand *every moving part* of a RAG pipeline instead of treating it like a black box, this is your map.
+It performs ingestion → chunking → embeddings → vector indexing → evidence retrieval → grounded answers with citations.
 
----
+This system is designed for environments where correctness and traceability matter more than creativity.
 
-<p align="center">
-  <img src="https://img.shields.io/badge/status-active-brightgreen" />
-  <img src="https://img.shields.io/badge/focus-RAG%20Architecture-blue" />
-  <img src="https://img.shields.io/badge/embeddings-semantic-orange" />
-  <img src="https://img.shields.io/badge/vector_store-FAISS%2FChroma-red" />
-</p>
+> This is not a chatbot.  
+> This is retrieval with governance.
 
----
-
-## 🚀 What is Veridian Atlas?
-
-A lightweight but realistic replica of an enterprise RAG flow:
-
-```
-PDF → Ingestion → Chunking → Embedding → Vector DB → Retrieval → Answer
-```
-
-It is built to demonstrate:
-- How clauses and tables become **queryable units**
-- Why embeddings are required for semantic matching
-- How metadata prevents data leakage & hallucinations
-- How vector DBs **narrow the blast radius of context**
-- Why LLMs should answer from **retrieved truth, not memory**
-
-This is not a chatbot.  
-This is retrieval with governance.
+## Why Veridian Atlas
+- Retrieval never mixes or leaks across deals
+- Answers grounded in retrieved clauses (no hallucination)
+- Transparent pipeline, each step inspectable
+- Fully local, no external API dependency required
 
 ---
 
-## ✨ Core Features
+## 📸 UI Preview
 
-- 📄 **Document Ingestion**
-  - Extract text from PDFs, normalize, version, store
+Veridian Atlas includes a lightweight client dashboard for deal selection, asking questions, inspecting retrieved clauses, and validating citations.
 
-- 🧩 **Semantic Chunking**
-  - Clause, section, table-row, amendment-aware segments
+### 🔹 Home Screen / Landing
+> Deal selection, onboarding, and first query entry
+![Home Screen](docs/screenshots/ui_home.png)
 
-- 🧠 **Text & Table Embeddings**
-  - Canonical text form → vector space for semantic similarity
+### 🔹 Ask a Question
+> Query → retrieve → answer flow (LLM is constrained to retrieved context)
+![Query Flow](docs/screenshots/ui_query.png)
 
-- 🗃 **Vector Store**
-  - FAISS or Chroma with metadata filtering & ANN index
+### 🔹 Retrieved Chunks & Citations
+> Inspection panel showing specific source clauses sent to the LLM
+![Citation Panel](docs/screenshots/ui_chunk_panel.png)
 
-- 🔍 **Retrieval Layer**
-  - Top‑K similarity + business rule scoring
-
-- 🤖 **Bounded LLM Answers**
-  - Model only answers from retrieved context, never guesses
-
----
-
-## 📐 Architecture Overview
-
-```
-                     ┌────────────────────────┐
-                     │      Ingestion         │
-Raw PDFs ───────────►│  text, metadata, OCR   │
-                     └───────────┬────────────┘
-                                 │
-                                 ▼
-                      ┌─────────────────────┐
-                      │     Chunking        │
-                      │ clauses • tables    │
-                      └──────────┬──────────┘
-                                 │
-                                 ▼
-                       ┌────────────────────┐
-                       │    Embeddings      │
-                       └─────────┬──────────┘
-                                 │
-                                 ▼
-                ┌─────────────────────────────────┐
-                │         Vector Database         │
-                │  ANN search + metadata filters  │
-                └─────────────────────┬───────────┘
-                                      │
-                                      ▼
-                              ┌──────────────┐
-                              │   Retrieval  │
-                              └──────┬───────┘
-                                     │
-                                     ▼
-                             🤖 LLM Answer Engine
-```
+### 🔹 Deal Sidebar / History
+> Quick access to past queries, sorted by deal & timestamp
+![Sidebar](docs/screenshots/ui_sidebar.png)
 
 ---
 
-## 🏗 Folder Layout
+# ⚙️ Tech Stack
+
+| Layer | Technology |
+|-------|-------------|
+| Runtime | Python 3.11 |
+| Vector Store | ChromaDB |
+| Embeddings | Sentence-Transformers |
+| API Backend | FastAPI |
+| UI | React + Vite + Tailwind |
+| LLM | Local or external optional |
+
+---
+
+# 📁 Project Structure
 
 ```
 veridian-atlas/
-├─ data/              # raw and processed docs
-├─ ingestion/         # PDF → text → metadata
-├─ embeddings/        # canonical text + vectors
-├─ vectorstore/       # FAISS/Chroma integration
-├─ retrieval/         # semantic search & filtering
-├─ app/               # FastAPI endpoint layer
-└─ examples/          # demo notebooks
+├─ src/
+│  ├─ veridian_atlas/
+│  │  ├─ api/
+│  │  ├─ cli/
+│  │  ├─ core/
+│  │  ├─ data/
+│  │  ├─ data_pipeline/
+│  │  ├─ rag_engine/
+│  │  └─ utils/
+│  └─ frontend/
+└─ requirements.txt
 ```
 
 ---
 
-## 🔎 Real Query Example
+# 🚀 Backend Setup
 
-**User asks**
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn veridian_atlas.api.server:app --reload --port 8000
 ```
-What's the maturity date for Blackbay III?
+
+API: `http://127.0.0.1:8000`
+
+---
+
+# 🖥️ Frontend Setup
+
+```bash
+cd src/frontend
+npm install
 ```
 
-**Runtime flow**
-1. Normalize query → embed
-2. Metadata filter: `deal_id=Blackbay_III`
-3. Vector similarity search (top‑K)
-4. Retrieve clause from Section 2.10
-5. LLM answers only from retrieved context
+Create `.env`:
+```
+VITE_API_URL=http://127.0.0.1:8000
+```
 
-**Result**
-> The Revolving Credit Facility under Blackbay III matures on **December 31, 2026**.  
-> *(Source: Section 2.10 – Credit Agreement)*
-
----
-
-## 🛠 Tech Choices
-
-| Layer | Tool |
-|-------|------|
-| Text Extraction | `pypdf`, `pdfplumber` |
-| Embeddings | OpenAI / HuggingFace |
-| Vector DB | **Chroma** (default) or FAISS |
-| Runtime API | FastAPI |
-| Reasoning Model | GPT‑4o or local LLM |
+Run:
+```bash
+npm run dev
+```
 
 ---
 
-## 🧭 Roadmap
+# 🎯 CLI Commands
 
-- [ ] CLI: `va ingest file.pdf`
-- [ ] Hybrid Search (BM25 + vectors)
-- [ ] Amendment tracking & temporal overrides
-- [ ] Streamlit/Gradio mini UI
-- [ ] Offline/local embedding mode
-
----
-
-## 📄 License
-MIT — use, remix, learn.
+```bash
+python -m veridian_atlas.cli.run_project --reset
+python -m veridian_atlas.cli.run_project --deal Blackbay_III
+python -m veridian_atlas.cli.run_query --deal SilverRock_II --question "fees?"
+```
 
 ---
 
-## 💬 Want to extend this?
-Open an issue or start a discussion. The goal is clarity, not complexity.
+# 🌐 Key Endpoints
+
+| Method | Endpoint |
+|--------|-----------|
+| GET | /deals |
+| POST | /ask/{deal_id} |
+| POST | /search/{deal_id} |
+| GET | /chunk/{deal_id}/{chunk_id} |
 
 ---
 
-**Veridian Atlas**  
-*Structured answers from unstructured worlds.*
+# 📄 License
+MIT
+
+---
