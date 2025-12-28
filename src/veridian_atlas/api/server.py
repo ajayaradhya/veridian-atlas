@@ -39,46 +39,13 @@ service = QueryService()
 
 
 # ---------------------------------------------------------
-# ROOT + HEALTH
+# HEALTH
 # ---------------------------------------------------------
-@app.get("/")
-def root():
-    return {
-        "message": "Veridian Atlas RAG API is active.",
-        "routes": [
-            "/health",
-            "/deals",
-            "/deals/{deal_id}",
-            "/deals/{deal_id}/docs",
-            "/ask/{deal_id}",
-            "/search/{deal_id}",
-            "/chunk/{deal_id}/{chunk_id}",
-        ],
-    }
 
 
 @app.get("/health")
 def health_check():
     return service.health()
-
-
-# ---------------------------------------------------------
-# SERVE FRONTEND (Single Page Application)
-# ---------------------------------------------------------
-FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
-INDEX_HTML = FRONTEND_DIST / "index.html"
-
-# Serve static assets if frontend build exists
-if FRONTEND_DIST.exists() and INDEX_HTML.exists():
-    app.mount("/", StaticFiles(directory=str(FRONTEND_DIST), html=True), name="frontend")
-
-    # Catch-all -> return index.html so routing works for React/Vite
-    @app.get("/{full_path:path}")
-    async def spa_catch_all(full_path: str):
-        return FileResponse(INDEX_HTML)
-
-else:
-    print("[WARN] No frontend build found. Run: cd src/frontend && npm run build")
 
 
 # ---------------------------------------------------------
@@ -213,6 +180,28 @@ def get_chunk(deal_id: str, chunk_id: str):
         raise HTTPException(status_code=404, detail="Chunk not found")
 
     return result
+
+
+# ---------------------------------------------------------
+# SERVE FRONTEND (Single Page Application)
+# ---------------------------------------------------------
+# Move up to project root: src/
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+FRONTEND_DIST = PROJECT_ROOT / "frontend" / "dist"
+INDEX_HTML = FRONTEND_DIST / "index.html"
+
+
+# Serve static assets if frontend build exists
+if FRONTEND_DIST.exists() and INDEX_HTML.exists():
+    app.mount("/", StaticFiles(directory=str(FRONTEND_DIST), html=True), name="frontend")
+
+    @app.get("/{full_path:path}")
+    async def spa_catch_all(full_path: str):
+        return FileResponse(INDEX_HTML)
+
+else:
+    print("[WARN] No frontend build found. Run: cd src/frontend && npm run build")
 
 
 # ---------------------------------------------------------
