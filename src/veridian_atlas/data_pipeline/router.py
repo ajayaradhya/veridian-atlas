@@ -70,12 +70,7 @@ def route_file(file_path: Path, deal_name: str, doc_id: Optional[str] = None) ->
 
     try:
         loader = LOADER_MAP[ext]
-        return loader(
-            deal_name=deal_name,
-            doc_id=doc_id,
-            file_path=file_path,
-            file_hash=file_hash
-        )
+        return loader(deal_name=deal_name, doc_id=doc_id, file_path=file_path, file_hash=file_hash)
     except Exception as exc:
         logger.exception(f"[ROUTER] Loader crash → {file_path.name}: {exc}")
         return []
@@ -89,9 +84,9 @@ def ingest_deal(deal_name: str) -> Dict[str, List[dict]]:
     processed_path = BASE_DEALS_PATH / deal_name / "processed"
     output_file = processed_path / "sections.json"
 
-    logger.info(f"\n==============================")
+    logger.info("\n==============================")
     logger.info(f"[DEAL] Ingesting {deal_name}")
-    logger.info(f"==============================")
+    logger.info("==============================")
     logger.info(f"[DEAL] RAW: {raw_path}")
 
     if not raw_path.exists():

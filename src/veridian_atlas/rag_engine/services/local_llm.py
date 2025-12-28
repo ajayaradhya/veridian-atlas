@@ -5,7 +5,9 @@ Local Qwen wrapper for 0.5B instruct model optimized for GTX 1060 or CPU.
 Ensures deterministic output with correct JSON extraction.
 """
 
-import torch, re, json
+import torch
+import re
+import json
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 _MODEL = None
@@ -36,15 +38,10 @@ def get_qwen():
 
     print(f"[LLM] Loading Qwen-0.5B → {device}")
 
-    _TOKENIZER = AutoTokenizer.from_pretrained(
-        MODEL_NAME,
-        trust_remote_code=True
-    )
+    _TOKENIZER = AutoTokenizer.from_pretrained(MODEL_NAME, trust_remote_code=True)
 
     _MODEL = AutoModelForCausalLM.from_pretrained(
-        MODEL_NAME,
-        torch_dtype=dtype,
-        trust_remote_code=True
+        MODEL_NAME, torch_dtype=dtype, trust_remote_code=True
     ).to(device)
 
     if use_gpu:
@@ -69,7 +66,7 @@ def generate_response(prompt: str, max_tokens: int = 256) -> dict:
     output = model.generate(
         **inputs,
         max_new_tokens=max_tokens,
-        do_sample=False,         # Ensures reproducible output
+        do_sample=False,  # Ensures reproducible output
         temperature=None,
         top_k=None,
         top_p=None,
@@ -90,7 +87,4 @@ def generate_response(prompt: str, max_tokens: int = 256) -> dict:
     try:
         return json.loads(extracted)
     except json.JSONDecodeError:
-        return {
-            "answer": "The model did not return valid JSON.",
-            "citations": []
-        }
+        return {"answer": "The model did not return valid JSON.", "citations": []}

@@ -3,23 +3,18 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
 
-from veridian_atlas.api.schemas import (
-    QueryRequest,
-    QueryResponse,
-    SearchResponse,
-    SearchResult
-)
+from veridian_atlas.api.schemas import QueryRequest, QueryResponse, SearchResponse
 from veridian_atlas.rag_engine.pipeline.rag_engine import (
     retrieve_context,
     answer_query,
-    get_chroma_collection
+    get_chroma_collection,
 )
 from veridian_atlas.rag_engine.services.query_service import QueryService
 
 app = FastAPI(
     title="Veridian Atlas RAG API",
     description="Local multi-deal RAG engine for financial contracts.",
-    version="0.6.0"
+    version="0.6.0",
 )
 
 # ---------------------------------------------------------
@@ -54,8 +49,8 @@ def root():
             "/deals/{deal_id}/docs",
             "/ask/{deal_id}",
             "/search/{deal_id}",
-            "/chunk/{deal_id}/{chunk_id}"
-        ]
+            "/chunk/{deal_id}/{chunk_id}",
+        ],
     }
 
 
@@ -95,8 +90,8 @@ def deal_metadata(deal_id: str):
             "processed_chunks_file": str(processed),
             "raw_exists": (base / "raw").exists(),
             "chunks_exists": processed.exists(),
-            "embeddings_exists": embeddings_dir.exists()
-        }
+            "embeddings_exists": embeddings_dir.exists(),
+        },
     }
 
 
@@ -114,7 +109,7 @@ def deal_documents(deal_id: str):
         "documents": {
             "raw": [d.name for d in (base / "raw").glob("*")],
             "processed": [p.name for p in (base / "processed").glob("*")],
-        }
+        },
     }
 
 
@@ -127,28 +122,31 @@ def ask_for_deal(deal_id: str, request: QueryRequest):
         result = answer_query(request.query, deal_id, request.top_k)
     except Exception:
         raise HTTPException(
-            status_code=404,
-            detail="Deal not found or missing embeddings. Run indexing first."
+            status_code=404, detail="Deal not found or missing embeddings. Run indexing first."
         )
 
     # format results for Pydantic
     formatted_sources = []
     for src in result.get("sources", []):
-        formatted_sources.append({
-            "chunk_id": src["chunk_id"],
-            "section": src.get("section"),
-            "clause": src.get("clause"),
-            "preview": src["content"][:300] + "..." if len(src["content"]) > 300 else src["content"],
-            "deal": deal_id
-        })
+        formatted_sources.append(
+            {
+                "chunk_id": src["chunk_id"],
+                "section": src.get("section"),
+                "clause": src.get("clause"),
+                "preview": (
+                    src["content"][:300] + "..." if len(src["content"]) > 300 else src["content"]
+                ),
+                "deal": deal_id,
+            }
+        )
 
     return {
-        "deal_id": deal_id,                          # REQUIRED FIELD
+        "deal_id": deal_id,  # REQUIRED FIELD
         "query": result.get("query"),
         "answer": result.get("answer"),
         "citations": result.get("citations", []),
         "source_count": len(formatted_sources),
-        "sources": formatted_sources
+        "sources": formatted_sources,
     }
 
 
@@ -171,10 +169,10 @@ def search_for_deal(deal_id: str, request: QueryRequest):
                 "chunk_id": c["chunk_id"],
                 "section": c.get("section"),
                 "clause": c.get("clause"),
-                "preview": c["content"][:240] + "..." if len(c["content"]) > 240 else c["content"]
+                "preview": c["content"][:240] + "..." if len(c["content"]) > 240 else c["content"],
             }
             for c in contexts
-        ]
+        ],
     }
 
 
@@ -193,6 +191,7 @@ def get_chunk(deal_id: str, chunk_id: str):
         raise HTTPException(status_code=404, detail="Chunk not found")
 
     return result
+
 
 # ---------------------------------------------------------
 # APP FACTORY (USED FOR TESTS)
