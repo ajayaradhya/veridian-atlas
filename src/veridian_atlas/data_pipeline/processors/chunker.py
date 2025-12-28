@@ -24,8 +24,11 @@ BASE_DEALS_PATH = Path("veridian_atlas/data/deals")
 # NORMALIZERS
 # -------------------------------------------------------
 
+
 def safe_id(value: str) -> str:
-    return str(value).strip().replace(" ", "_").replace("-", "_").replace("–", "_").replace("—", "_")
+    return (
+        str(value).strip().replace(" ", "_").replace("-", "_").replace("–", "_").replace("—", "_")
+    )
 
 
 def display_name(value: str) -> str:
@@ -43,6 +46,7 @@ def normalize_section(section_id: str) -> str:
 # CHUNK ID BUILDERS (UPDATED)
 # -------------------------------------------------------
 
+
 def build_section_chunk_id(deal: str, doc: str, normalized_section: str) -> str:
     return f"VA_{safe_id(deal)}_{safe_id(doc)}_{normalized_section}"
 
@@ -54,6 +58,7 @@ def build_clause_chunk_id(deal: str, doc: str, normalized_section: str, clause_i
 # -------------------------------------------------------
 # CORE CHUNK BUILDER
 # -------------------------------------------------------
+
 
 def build_chunks_from_json(parsed_json: Dict, deal_name: str, deal_root: Path) -> List[dict]:
     chunks = []
@@ -78,25 +83,27 @@ def build_chunks_from_json(parsed_json: Dict, deal_name: str, deal_root: Path) -
             # ------------------------------------------
             if not clauses:
                 chunk_id = build_section_chunk_id(deal_name, document_id, normalized_section)
-                chunks.append({
-                    "chunk_id": chunk_id,
-                    "level": "section",
-                    "deal_name": deal_name,
-                    "document_id": document_id,
-                    "document_display_name": doc_display,
-                    "section_id": section_id,
-                    "normalized_section": normalized_section,
-                    "section_title": section_title,
-                    "content": section_text,
-                    "metadata": {
-                        "origin": "section_no_clauses",
-                        "parent_section": normalized_section,
-                        "file_hash": file_hash,
-                        "source_format": source_format,
-                        "source_path": raw_source_path,
-                        "length_chars": len(section_text)
-                    },
-                })
+                chunks.append(
+                    {
+                        "chunk_id": chunk_id,
+                        "level": "section",
+                        "deal_name": deal_name,
+                        "document_id": document_id,
+                        "document_display_name": doc_display,
+                        "section_id": section_id,
+                        "normalized_section": normalized_section,
+                        "section_title": section_title,
+                        "content": section_text,
+                        "metadata": {
+                            "origin": "section_no_clauses",
+                            "parent_section": normalized_section,
+                            "file_hash": file_hash,
+                            "source_format": source_format,
+                            "source_path": raw_source_path,
+                            "length_chars": len(section_text),
+                        },
+                    }
+                )
                 continue
 
             # ------------------------------------------
@@ -107,29 +114,33 @@ def build_chunks_from_json(parsed_json: Dict, deal_name: str, deal_root: Path) -
                 clause_title = clause.get("clause_title", "").strip()
                 clause_text = clause.get("clause_text", "").strip()
 
-                chunk_id = build_clause_chunk_id(deal_name, document_id, normalized_section, clause_id)
+                chunk_id = build_clause_chunk_id(
+                    deal_name, document_id, normalized_section, clause_id
+                )
 
-                chunks.append({
-                    "chunk_id": chunk_id,
-                    "level": "clause",
-                    "deal_name": deal_name,
-                    "document_id": document_id,
-                    "document_display_name": doc_display,
-                    "section_id": section_id,
-                    "normalized_section": normalized_section,
-                    "clause_id": clause_id,
-                    "section_title": section_title,
-                    "clause_title": clause_title,
-                    "content": clause_text,
-                    "metadata": {
-                        "origin": "clause",
-                        "parent_section": normalized_section,
-                        "file_hash": file_hash,
-                        "source_format": source_format,
-                        "source_path": raw_source_path,
-                        "length_chars": len(clause_text)
-                    },
-                })
+                chunks.append(
+                    {
+                        "chunk_id": chunk_id,
+                        "level": "clause",
+                        "deal_name": deal_name,
+                        "document_id": document_id,
+                        "document_display_name": doc_display,
+                        "section_id": section_id,
+                        "normalized_section": normalized_section,
+                        "clause_id": clause_id,
+                        "section_title": section_title,
+                        "clause_title": clause_title,
+                        "content": clause_text,
+                        "metadata": {
+                            "origin": "clause",
+                            "parent_section": normalized_section,
+                            "file_hash": file_hash,
+                            "source_format": source_format,
+                            "source_path": raw_source_path,
+                            "length_chars": len(clause_text),
+                        },
+                    }
+                )
 
     logger.info(f"[CHUNKER] ✔ Generated {len(chunks)} chunks for deal '{deal_name}'")
     return chunks
@@ -138,6 +149,7 @@ def build_chunks_from_json(parsed_json: Dict, deal_name: str, deal_root: Path) -
 # -------------------------------------------------------
 # SINGLE DEAL LOAD
 # -------------------------------------------------------
+
 
 def chunk_from_file(section_json_path: Path):
     if not section_json_path.exists():
@@ -156,6 +168,7 @@ def chunk_from_file(section_json_path: Path):
 # SAVE JSONL
 # -------------------------------------------------------
 
+
 def save_chunks_as_jsonl(chunks: List[dict], output_path: Path):
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "w", encoding="utf-8") as f:
@@ -168,6 +181,7 @@ def save_chunks_as_jsonl(chunks: List[dict], output_path: Path):
 # MULTI-DEAL
 # -------------------------------------------------------
 
+
 def chunk_all_deals() -> dict:
     results = {}
     for deal_dir in BASE_DEALS_PATH.iterdir():
@@ -179,6 +193,7 @@ def chunk_all_deals() -> dict:
     logger.info(f"[GLOBAL] Chunking complete across {len(results)} deals.")
     return results
 
+
 # ---------------------------------------------------------
 # TEST COMPATIBILITY WRAPPER
 # ---------------------------------------------------------
@@ -187,8 +202,10 @@ def chunk_text(text: str, chunk_size: int = 500) -> list[dict]:
     Simple wrapper for tests. Produces a single chunk-like structure
     without requiring deal context or sections.json.
     """
-    return [{
-        "chunk_id": "TEST_CHUNK",
-        "content": text[:chunk_size],
-        "meta": {"length_chars": len(text)}
-    }]
+    return [
+        {
+            "chunk_id": "TEST_CHUNK",
+            "content": text[:chunk_size],
+            "meta": {"length_chars": len(text)},
+        }
+    ]

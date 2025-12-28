@@ -13,7 +13,7 @@ from pathlib import Path
 from veridian_atlas.data_pipeline.processors.chunker import (
     chunk_from_file,
     save_chunks_as_jsonl,
-    chunk_all_deals
+    chunk_all_deals,
 )
 
 BASE = Path("veridian_atlas/data/deals")

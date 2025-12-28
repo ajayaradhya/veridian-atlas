@@ -3,6 +3,7 @@ from typing import Dict, Any
 import torch
 from veridian_atlas.rag_engine.pipeline.rag_engine import answer_query, get_chroma_collection
 
+
 class QueryService:
     def __init__(self, db_path: str = "veridian_atlas/data/indexes/chroma_db"):
         self.db_path = db_path
@@ -19,7 +20,7 @@ class QueryService:
             "answer": result.get("answer"),
             "citations": result.get("citations"),
             "retrieved_chunks": result.get("retrieved_chunks", []),
-            "sources": result.get("sources", [])
+            "sources": result.get("sources", []),
         }
 
     def health(self, deal_id: str | None = None) -> Dict[str, Any]:
@@ -31,8 +32,8 @@ class QueryService:
             db_status = False
 
         return {
-            "status": "ok", 
+            "status": "ok",
             "database_connected": db_status,
             "device": "cuda" if torch.cuda.is_available() else "cpu",
-            "deal_check": deal_id or "not provided"
+            "deal_check": deal_id or "not provided",
         }

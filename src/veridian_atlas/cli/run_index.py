@@ -24,6 +24,7 @@ DB_PATH = Path("veridian_atlas/data/indexes/chroma_db")
 # PROGRAMMATIC ENTRYPOINT
 # -----------------------------------------------------
 
+
 def run(deal: str | None = None, reset: bool = False) -> dict:
     """
     Build vector index(es) and generate embeddings implicitly.
@@ -35,6 +36,7 @@ def run(deal: str | None = None, reset: bool = False) -> dict:
 # -----------------------------------------------------
 # INDEX BUILDING (SINGLE DEAL)
 # -----------------------------------------------------
+
 
 def _index_single(deal: str, reset: bool) -> dict:
     chunks_path = DEALS_BASE / deal / "processed" / "chunks.jsonl"
@@ -68,6 +70,7 @@ def _index_single(deal: str, reset: bool) -> dict:
 # INDEX BUILDING (ALL DEALS)
 # -----------------------------------------------------
 
+
 def _index_all(reset: bool) -> dict:
     print("\n=== BATCH INDEX BUILD START ===")
 
@@ -84,7 +87,7 @@ def _index_all(reset: bool) -> dict:
         if chunks_file.exists():
             result = _index_single(deal, reset=reset_first)
             results.update(result)
-            reset_first = False     # Only reset on the first build
+            reset_first = False  # Only reset on the first build
         else:
             print(f"[SKIP] Missing chunks for: {deal}")
             results[deal] = "skipped"
@@ -97,6 +100,7 @@ def _index_all(reset: bool) -> dict:
 # CLI MODE
 # -----------------------------------------------------
 
+
 def get_args():
     parser = argparse.ArgumentParser(
         description="Build ChromaDB vector indexes for one or all deals."
@@ -105,7 +109,7 @@ def get_args():
     parser.add_argument(
         "--reset",
         action="store_true",
-        help="Reset DB before initial index build (not repeated in batch mode)"
+        help="Reset DB before initial index build (not repeated in batch mode)",
     )
     return parser.parse_args()
 

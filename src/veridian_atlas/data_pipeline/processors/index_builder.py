@@ -18,8 +18,7 @@ from veridian_atlas.data_pipeline.processors.embedder import hf_embedder
 def get_chroma_client(db_path: Path):
     db_path.mkdir(parents=True, exist_ok=True)
     return chromadb.PersistentClient(
-        path=str(db_path),
-        settings=Settings(anonymized_telemetry=False)
+        path=str(db_path), settings=Settings(anonymized_telemetry=False)
     )
 
 
@@ -52,7 +51,7 @@ def build_chroma_index(
     chunks_path: Path,
     db_path: Path,
     reset_existing: bool = False,
-    batch_size: int = 64
+    batch_size: int = 64,
 ):
     if not chunks_path.exists():
         raise FileNotFoundError(f"[ERROR] chunks.jsonl missing → {chunks_path}")
@@ -80,31 +79,30 @@ def build_chroma_index(
 
             ids.append(data["chunk_id"])
             docs.append(content)
-            metas.append({
-                "chunk_id": data["chunk_id"],
-                "deal_name": data.get("deal_name"),
-                "document_id": data.get("document_id"),
-                "document_display_name": data.get("document_display_name"),
-                "section_id": data.get("section_id"),
-                "normalized_section": data.get("normalized_section"),
-                "clause_id": data.get("clause_id"),
-                "source_path": data["metadata"].get("source_path"),
-            })
+            metas.append(
+                {
+                    "chunk_id": data["chunk_id"],
+                    "deal_name": data.get("deal_name"),
+                    "document_id": data.get("document_id"),
+                    "document_display_name": data.get("document_display_name"),
+                    "section_id": data.get("section_id"),
+                    "normalized_section": data.get("normalized_section"),
+                    "clause_id": data.get("clause_id"),
+                    "source_path": data["metadata"].get("source_path"),
+                }
+            )
 
     print(f"[STATS] {len(ids)} chunks detected. Embedding now...")
 
     for i in range(0, len(ids), batch_size):
-        batch_ids = ids[i:i+batch_size]
-        batch_docs = docs[i:i+batch_size]
-        batch_meta = metas[i:i+batch_size]
+        batch_ids = ids[i : i + batch_size]
+        batch_docs = docs[i : i + batch_size]
+        batch_meta = metas[i : i + batch_size]
 
         vectors = hf_embedder.embed(batch_docs)
 
         collection.upsert(
-            ids=batch_ids,
-            documents=batch_docs,
-            metadatas=batch_meta,
-            embeddings=vectors
+            ids=batch_ids, documents=batch_docs, metadatas=batch_meta, embeddings=vectors
         )
         print(f"[BATCH] {i} → {i+len(batch_ids)-1}")
 

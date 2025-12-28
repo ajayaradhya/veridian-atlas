@@ -36,6 +36,7 @@ INDEX_DIR = Path("veridian_atlas/data/indexes/chroma_db")
 # CLEANUP HELPERS
 # ------------------------------------------------------
 
+
 def clean_generated(deal: str | None = None):
     """
     Removes previously generated processed files and index artifacts.
@@ -58,6 +59,7 @@ def clean_generated(deal: str | None = None):
                 item.unlink()
             else:
                 import shutil
+
                 shutil.rmtree(item)
         logger.info("[CLEAN] ChromaDB index reset.")
 
@@ -68,11 +70,9 @@ def clean_generated(deal: str | None = None):
 # MAIN PIPELINE
 # ------------------------------------------------------
 
+
 def run_all(
-    deal: str | None = None,
-    clean: bool = False,
-    validate: bool = True,
-    reset_index: bool = True
+    deal: str | None = None, clean: bool = False, validate: bool = True, reset_index: bool = True
 ):
     """
     Runs the full pipeline. Batch mode if no deal passed.
@@ -134,10 +134,9 @@ def run_all(
 # CLI ARGUMENTS
 # ------------------------------------------------------
 
+
 def get_args():
-    parser = argparse.ArgumentParser(
-        description="Run Veridian Atlas full pipeline."
-    )
+    parser = argparse.ArgumentParser(description="Run Veridian Atlas full pipeline.")
     parser.add_argument("--deal", type=str, help="Process a single deal.")
     parser.add_argument("--clean", action="store_true", help="Remove generated files first.")
     parser.add_argument("--no-validate", action="store_true", help="Skip validation query.")

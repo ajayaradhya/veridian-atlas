@@ -11,28 +11,28 @@ class SourceRef(BaseModel):
     section: Optional[str]
     clause: Optional[str]
     preview: str
-    deal: str                               # always include for cross-deal UI context
+    deal: str  # always include for cross-deal UI context
 
 
 # ---------------------------------------------------------
 # REQUEST BODY
 # ---------------------------------------------------------
 class QueryRequest(BaseModel):
-    deal_id: str                            # deal to target
+    deal_id: str  # deal to target
     query: str
-    top_k: int = 3                          # default retrieval depth
+    top_k: int = 3  # default retrieval depth
 
 
 # ---------------------------------------------------------
 # RESPONSE: FULL RAG
 # ---------------------------------------------------------
 class QueryResponse(BaseModel):
-    deal_id: str                            # REQUIRED (fix for validation)
+    deal_id: str  # REQUIRED (fix for validation)
     query: str
     answer: str
-    citations: List[str] = []               # LLM citation ids
+    citations: List[str] = []  # LLM citation ids
     source_count: int
-    sources: List[SourceRef]                # source chunk preview list
+    sources: List[SourceRef]  # source chunk preview list
 
 
 # ---------------------------------------------------------

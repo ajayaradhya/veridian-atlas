@@ -20,6 +20,7 @@ from veridian_atlas.rag_engine.pipeline.rag_engine import answer_query
 # PROGRAMMATIC ENTRYPOINT
 # ------------------------------------------------------
 
+
 def run(question: str, deal: str | None = None) -> dict:
     """
     Executes a RAG query and returns a structured response.
@@ -41,6 +42,7 @@ def run(question: str, deal: str | None = None) -> dict:
 # ------------------------------------------------------
 # CLI MODE
 # ------------------------------------------------------
+
 
 @click.command()
 @click.option("--deal", required=False)
