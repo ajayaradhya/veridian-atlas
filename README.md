@@ -35,6 +35,11 @@ Retrieved chunk viewer with metadata
 
 # Architecture
 
+![Architecture](docs/diagrams/system_architecture.png)
+
+The diagram above shows the journey from **raw documents ➜ chunking ➜ embeddings ➜ vector DB ➜ RAG answer**.
+
+
 ```
 Raw Docs → Ingestion → Chunking → Embeddings
            ↓                ↓
