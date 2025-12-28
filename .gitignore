@@ -1,6 +1,6 @@
-# ---------------------------
-# Python / Environment
-# ---------------------------
+#################################################################
+# PYTHON / ENVIRONMENT
+#################################################################
 __pycache__/
 *.py[cod]
 *.pyo
@@ -8,53 +8,64 @@ __pycache__/
 *.pkl
 *.pickle
 
-# Virtual environment folders
+# Virtual Environments
 venv/
 .env/
 env/
 .venv/
 
-# Jupyter checkpoints
+# Jupyter
 .ipynb_checkpoints/
 
-# IDE / Editor
+#################################################################
+# IDE / EDITOR
+#################################################################
 .vscode/
 .idea/
 *.code-workspace
 
-# ---------------------------
-# Project Specific: Veridian Atlas
-# ---------------------------
-# Data lifecycle directories
-# veridian_atlas/data/**/raw/*
-# veridian_atlas/data/**/processed/*
-# veridian_atlas/data/**/chunks/*
-veridian_atlas/data/indexes/chroma_db/*
-# veridian_atlas/data/tmp/
+#################################################################
+# VERIDIAN ATLAS - PROJECT SPECIFIC
+#################################################################
 
-# Allow schema/example files if needed
-!veridian_atlas/data/**/*_schema.json
-!veridian_atlas/data/**/example*.txt
+# DATA LIFECYCLE OUTPUT (ALLOWED: raw inputs, IGNORED: processed output)
+# Raw source files (keep) are under:
+#   src/veridian_atlas/data/deals/<deal>/raw/
+# Processed generated files (ignore):
+src/veridian_atlas/data/deals/*/processed/
+src/veridian_atlas/data/deals/*/chunks/
+src/veridian_atlas/data/tmp/
 
-# Logs
+# Vector DB / Index / Chroma artifacts (ALWAYS IGNORE)
+src/veridian_atlas/data/indexes/
+
+# Allow schema/example/demo files
+!src/veridian_atlas/data/**/*_schema.json
+!src/veridian_atlas/data/**/example*.txt
+
+#################################################################
+# LOGS / DIAGNOSTICS
+#################################################################
 logs/
 *.log
 
-# Local cache / scratch
+#################################################################
+# LOCAL / SCRATCH
+#################################################################
 cache/
 .tmp/
 *.tmp
 
-# ---------------------------
-# Dependencies / Build
-# ---------------------------
+#################################################################
+# BUILD / DIST
+#################################################################
 dist/
 build/
 *.egg-info/
 *.egg
 
-# ---------------------------
-# OS Junk
-# ---------------------------
+#################################################################
+# OS / EDITOR NOISE
+#################################################################
 .DS_Store
 Thumbs.db

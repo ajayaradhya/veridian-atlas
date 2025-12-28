@@ -1,0 +1,11 @@
+# node artifacts
+node_modules/
+dist/
+*.log
+
+# env secrets
+.env
+.env.*.local
+
+# lockfiles if not deterministic
+package-lock.json
