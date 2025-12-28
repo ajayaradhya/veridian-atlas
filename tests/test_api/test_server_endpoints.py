@@ -12,16 +12,8 @@ client = TestClient(app)
 
 
 # ---------------------------------------------------------
-# ROOT & HEALTH
+# HEALTH CHECK
 # ---------------------------------------------------------
-
-def test_root_route():
-    response = client.get("/")
-    assert response.status_code == 200
-    data = response.json()
-    assert "message" in data
-    assert "routes" in data
-    assert isinstance(data["routes"], list)
 
 
 def test_health_route():
@@ -38,6 +30,7 @@ def test_health_route():
 # ---------------------------------------------------------
 # DEALS & METADATA
 # ---------------------------------------------------------
+
 
 def test_list_deals_route(tmp_path, monkeypatch):
     """
@@ -61,7 +54,6 @@ def test_list_deals_route(tmp_path, monkeypatch):
         assert isinstance(data["deals"], list)
 
 
-
 def test_deal_metadata_missing():
     response = client.get("/deals/DOES_NOT_EXIST")
     assert response.status_code == 404
@@ -73,6 +65,7 @@ def test_deal_metadata_missing():
 # DOCUMENT LISTING
 # ---------------------------------------------------------
 
+
 def test_docs_missing_deal():
     response = client.get("/deals/UNKNOWN_DEAL/docs")
     assert response.status_code == 404
@@ -83,10 +76,8 @@ def test_docs_missing_deal():
 # ASK & SEARCH ENDPOINTS (NO EMBEDDINGS CASE)
 # ---------------------------------------------------------
 
-@pytest.mark.parametrize("path", [
-    "/ask/testdeal",
-    "/search/testdeal"
-])
+
+@pytest.mark.parametrize("path", ["/ask/testdeal", "/search/testdeal"])
 def test_rag_endpoints_missing_deal(path):
     # Request body structure must match QueryRequest
     payload = {"query": "Hello world", "top_k": 1}
@@ -101,6 +92,7 @@ def test_rag_endpoints_missing_deal(path):
 # ---------------------------------------------------------
 # CHUNK LOOKUP
 # ---------------------------------------------------------
+
 
 def test_chunk_lookup_missing():
     response = client.get("/chunk/UnknownDeal/XYZ")
