@@ -8,17 +8,27 @@ on:
 jobs:
   lint:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v4
-        with: { python-version: "3.11" }
+        with:
+          python-version: "3.11"
 
-      - name: Install tools
-        run: |
-          pip install ruff black
+      - name: Cache pip
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-tools
+          restore-keys: |
+            ${{ runner.os }}-pip-
 
-      - name: Run Ruff lint
+      - name: Install lint tools
+        run: pip install ruff black
+
+      - name: Ruff Lint
         run: ruff check .
 
-      - name: Run Black (check only)
+      - name: Black Format Check
         run: black --check .
