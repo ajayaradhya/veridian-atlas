@@ -33,12 +33,15 @@ Retrieved chunk viewer with metadata
 
 ---
 
-# Architecture
+# System Architecture
 
-![Architecture](docs/diagrams/ARCHITECTURE.md)
+Veridian Atlas follows a document-to-answer pipeline designed for **traceable, deal-isolated retrieval**.  
+If it was not retrieved, it cannot be used in the answer.
 
-The diagram above shows the journey from **raw documents ➜ chunking ➜ embeddings ➜ vector DB ➜ RAG answer**.
+📌 **Full architecture with flowcharts and diagrams:** [View Architecture Overview](docs/diagrams/ARCHITECTURE.md)
 
+
+## 🔧 Pipeline Summary
 
 ```
 Raw Docs → Ingestion → Chunking → Embeddings
