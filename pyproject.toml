@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "veridian-atlas"
+version = "0.1.0"
+description = "RAG-based deal document retrieval system"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = []
+# (optional) Add real dependencies here later
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

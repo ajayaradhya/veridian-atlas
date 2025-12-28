@@ -144,3 +144,14 @@ def handle_text_loading(
 
     logger.info(f"[TEXT] Parsed {len(final)} sections | Doc={doc_id}")
     return final
+
+# ---------------------------------------------------------
+# TEST COMPATIBILITY WRAPPER
+# ---------------------------------------------------------
+def load_text_file(path: str) -> str:
+    """
+    Wrapper for tests. Uses the existing extract_content pipeline.
+    """
+    p = Path(path)
+    raw = extract_content(p)
+    return normalize_text(raw) if raw else ""

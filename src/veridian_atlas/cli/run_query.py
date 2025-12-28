@@ -12,9 +12,9 @@ Programmatic:
     answer = run_query("What are the fee terms?", deal="Blackbay_III")
 """
 
+import click
 import argparse
 from veridian_atlas.rag_engine.pipeline.rag_engine import answer_query
-
 
 # ------------------------------------------------------
 # PROGRAMMATIC ENTRYPOINT
@@ -41,6 +41,17 @@ def run(question: str, deal: str | None = None) -> dict:
 # ------------------------------------------------------
 # CLI MODE
 # ------------------------------------------------------
+
+@click.command()
+@click.option("--deal", required=False)
+@click.argument("question")
+def cli(question, deal):
+    """
+    Test-friendly CLI wrapper. Calls existing run().
+    """
+    output = run(question, deal)
+    click.echo(output.get("answer", ""))
+
 
 def get_args():
     parser = argparse.ArgumentParser(description="Run a question against the RAG engine.")

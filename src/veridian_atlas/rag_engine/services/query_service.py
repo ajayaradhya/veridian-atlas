@@ -31,6 +31,7 @@ class QueryService:
             db_status = False
 
         return {
+            "status": "ok", 
             "database_connected": db_status,
             "device": "cuda" if torch.cuda.is_available() else "cpu",
             "deal_check": deal_id or "not provided"

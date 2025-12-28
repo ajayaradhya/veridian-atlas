@@ -37,7 +37,8 @@ def get_chroma_collection(deal_name: str, db_path: Path = DEFAULT_DB_PATH):
 # ------------------------------------------------------------
 def retrieve_context(query: str, deal_name: str, top_k: int = TOP_K) -> List[Dict[str, Any]]:
     collection = get_chroma_collection(deal_name)
-
+    if collection is None:
+        return []
     # Manual embedding → avoids auto-embed mismatch
     q_vec = hf_embedder.embed_single(query)
 

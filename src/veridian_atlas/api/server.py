@@ -70,6 +70,8 @@ def health_check():
 @app.get("/deals")
 def list_deals():
     base = Path("veridian_atlas/data/deals")
+    if not base.exists():
+        return {"deals": []}
     deals = [d.name for d in base.iterdir() if d.is_dir()]
     return {"deals": deals}
 
@@ -191,3 +193,13 @@ def get_chunk(deal_id: str, chunk_id: str):
         raise HTTPException(status_code=404, detail="Chunk not found")
 
     return result
+
+# ---------------------------------------------------------
+# APP FACTORY (USED FOR TESTS)
+# ---------------------------------------------------------
+def create_app():
+    """
+    Application factory for tests and modular execution.
+    Returns the configured FastAPI app instance.
+    """
+    return app

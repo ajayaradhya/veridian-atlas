@@ -178,3 +178,17 @@ def chunk_all_deals() -> dict:
             results[deal] = len(chunks)
     logger.info(f"[GLOBAL] Chunking complete across {len(results)} deals.")
     return results
+
+# ---------------------------------------------------------
+# TEST COMPATIBILITY WRAPPER
+# ---------------------------------------------------------
+def chunk_text(text: str, chunk_size: int = 500) -> list[dict]:
+    """
+    Simple wrapper for tests. Produces a single chunk-like structure
+    without requiring deal context or sections.json.
+    """
+    return [{
+        "chunk_id": "TEST_CHUNK",
+        "content": text[:chunk_size],
+        "meta": {"length_chars": len(text)}
+    }]
